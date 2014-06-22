@@ -1,0 +1,6 @@
+# local_path                    target_path                                                             owner           mode
+
+test_hd44780                    /home/cburki/test_hd44780                                               cburki:cburki   0755
+
+gnublin_module_hd44780.py       /usr/local/lib/python2.7/dist-packages/gnublin_module_hd44780.py        root:staff      0644
+_gnublin_module_hd44780.so      /usr/local/lib/python2.7/dist-packages/_gnublin_module_hd44780.so       root:staff      0755

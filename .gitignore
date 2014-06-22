@@ -1,0 +1,13 @@
+module_mcp23017/test_mcp23017
+module_mcp23017/test_int_mcp23017
+module_sc16is750/test_sc16is750
+module_hd44780/test_hd44780
+
+*~
+*.o
+*.so
+
+*.py
+*.pyc
+*.cxx
+*.i
