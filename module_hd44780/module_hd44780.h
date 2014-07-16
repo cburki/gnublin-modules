@@ -5,10 +5,10 @@
  * Author       : Christophe Burki
  * Maintainer   : Christophe Burki
  * Created      : Sat May  3 18:21:57 2014
- * Version      : 1.0.0
- * Last-Updated : Sun Jun 22 11:42:48 2014 (7200 CEST)
+ * Version      : 1.1.0
+ * Last-Updated : Sun Jun 22 14:24:33 2014 (7200 CEST)
  *           By : Christophe Burki
- *     Update # : 87
+ *     Update # : 91
  * URL          : 
  * Keywords     : 
  * Compatibility: 
@@ -22,6 +22,8 @@
  */
 
 /* Change log:
+ *
+ * 2014-06-22 : Added driver for the sc16is750 device. *
  * 
  * 
  */
@@ -50,6 +52,7 @@
 
 #include "gnublin.h"
 #include "module_mcp23017.h"
+#include "module_sc16is750.h"
 
 /* -------------------------------------------------------------------------- */
 
@@ -110,6 +113,28 @@ class gnublin_hd44780_driver_mcp23017 : public gnublin_hd44780_driver {
     gnublin_hd44780_driver_mcp23017(void);
     gnublin_hd44780_driver_mcp23017(int rs, int en, int d4, int d5, int d6, int d7);
     ~gnublin_hd44780_driver_mcp23017(void);
+    void setAddress(int address);
+    void setDevicefile(std::string filename);
+    int writeByte(unsigned char byte, int mode);
+};
+
+/* -------------------------------------------------------------------------- */
+
+/**
+ * @class gnublin_hd44780_driver_sc16is750
+ * @~english
+ * @brief Class for accessing a HD44780 compatible LCD connected via the
+ * IO of a SC16IS750 device.
+ */
+class gnublin_hd44780_driver_sc16is750 : public gnublin_hd44780_driver {
+
+ private :
+    gnublin_module_sc16is750 _sc16is750;
+
+ public :
+    gnublin_hd44780_driver_sc16is750(void);
+    gnublin_hd44780_driver_sc16is750(int rs, int en, int d4, int d5, int d6, int d7);
+    ~gnublin_hd44780_driver_sc16is750(void);
     void setAddress(int address);
     void setDevicefile(std::string filename);
     int writeByte(unsigned char byte, int mode);

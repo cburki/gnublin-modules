@@ -6,9 +6,9 @@
 ## Maintainer   : Christophe Burki
 ## Created      : Sun Jun 22 11:51:54 2014
 ## Version      : 1.0.0
-## Last-Updated : Sun Jun 22 11:52:16 2014 (7200 CEST)
+## Last-Updated : Thu Jul  3 13:20:06 2014 (7200 CEST)
 ##           By : Christophe Burki
-##     Update # : 2
+##     Update # : 5
 ## URL          : 
 ## Keywords     : 
 ## Compatibility: 
@@ -45,27 +45,12 @@
 ## 
 ### Code         :
 
-SOURCES := module_sc16is750.cpp test_sc16is750.c
+TARGET := test_sc16is750
+MODULE := module_sc16is750
+SOURCES := $(MODULE).cpp test_sc16is750.c
 
 include ../Config.mk
 include $(GNUBLINMKDIR)/gnublin.mk
-
-
-python-module: $(OBJECTS)
-	@echo "%module gnublin_module_sc16is750" > gnublin_module_sc16is750.i
-	@echo "%include \"std_string.i\"" >> gnublin_module_sc16is750.i
-	@echo "%{" >> gnublin_module_sc16is750.i
-	@echo "#include \"module_sc16is750.h\"" >> gnublin_module_sc16is750.i
-	@echo "%}" >> gnublin_module_sc16is750.i
-	@echo "#define BOARD $(BOARD)" >> gnublin_module_sc16is750.i
-	@echo "%include \"module_sc16is750.h\"" >> gnublin_module_sc16is750.i
-	swig2.0 -c++ -python gnublin_module_sc16is750.i
-	$(GCC) $(CPPFLAGS) -fpic -I $(GNUBLINAPIDIR)/python2.7/ -c gnublin_module_sc16is750_wrap.cxx
-	$(GCC) $(CPPFLAGS) -fpic -c module_sc16is750.cpp
-	$(GCC) -shared gnublin_module_sc16is750_wrap.o module_sc16is750.o $(GNUBLINAPIDIR)/gnublin.o -o _gnublin_module_sc16is750.so
-
-python-module-clean : clean
-	rm -f *.i *.py *.pyc *_wrap.cxx _*.so
 
 ######################################################################
 ### Makefile ends here

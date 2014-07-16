@@ -5,10 +5,10 @@
 // Author       : Christophe Burki
 // Maintainer   : Christophe Burki
 // Created      : Sun May  4 11:24:24 2014
-// Version      : 1.0.0
-// Last-Updated : Sun Jun 22 11:43:12 2014 (7200 CEST)
+// Version      : 1.1.0
+// Last-Updated : Sun Jun 22 14:26:24 2014 (7200 CEST)
 //           By : Christophe Burki
-//     Update # : 246
+//     Update # : 250
 // URL          : 
 // Keywords     : 
 // Compatibility: 
@@ -22,7 +22,8 @@
 // 
 
 // Change log:
-// 
+//
+// 2014-06-22 : Added driver for the sc16is750 device. 
 // 
 // 
 // 
@@ -316,6 +317,140 @@ int gnublin_hd44780_driver_mcp23017::writeByte(unsigned char byte, int mode) {
     _mcp23017.digitalWrite(_en, HIGH);
     usleep(LCD_PULSE);
     _mcp23017.digitalWrite(_en, LOW);
+    usleep(LCD_DELAY);
+
+    return 1;
+}
+
+/* -------------------------------------------------------------------------- */
+
+/**
+ * @~english
+ * @brief Set the default pins used to drive the HD44780 LCD (4 bits data interface).
+ * These are the pins of the SC16IS750 device.
+ * 0 : RS, 1 : EN : 1, 2 : D4, 3 : D5, 4 : D6, 5 : D7
+ */
+gnublin_hd44780_driver_sc16is750::gnublin_hd44780_driver_sc16is750(void)
+    : gnublin_hd44780_driver(0, 1, 2, 3, 4, 5) {
+
+    _sc16is750.pinMode(_rs, OUTPUT);
+    _sc16is750.pinMode(_en, OUTPUT);
+    _sc16is750.pinMode(_d4, OUTPUT);
+    _sc16is750.pinMode(_d5, OUTPUT);
+    _sc16is750.pinMode(_d6, OUTPUT);
+    _sc16is750.pinMode(_d7, OUTPUT);
+}
+
+
+/**
+ * @~english
+ * @brief
+ */
+gnublin_hd44780_driver_sc16is750::~gnublin_hd44780_driver_sc16is750(void) {
+}
+
+
+/**
+ * @~english
+ * @brief Set the pins used to drive the HD44780 LCD (4 bits data interface).
+ * These are the pins of the SC16IS750 device.
+ */
+gnublin_hd44780_driver_sc16is750::gnublin_hd44780_driver_sc16is750(int rs, int en, int d4, int d5, int d6, int d7)
+    : gnublin_hd44780_driver(rs, en, d4, d5, d6, d7) {
+
+    _sc16is750.pinMode(_rs, OUTPUT);
+    _sc16is750.pinMode(_en, OUTPUT);
+    _sc16is750.pinMode(_d4, OUTPUT);
+    _sc16is750.pinMode(_d5, OUTPUT);
+    _sc16is750.pinMode(_d6, OUTPUT);
+    _sc16is750.pinMode(_d7, OUTPUT);
+}
+
+
+/**
+ * @~english
+ * @brief Set the i2c address of the I/O expander.
+ *
+ * @param address The address to set.
+ */
+void gnublin_hd44780_driver_sc16is750::setAddress(int address) {
+
+    _sc16is750.setAddress(address);
+}
+
+
+/**
+ * @~english
+ * @brief Set the i2c device file of the I/O expander.
+ *
+ * @param filename THe i2c device filename.
+ */
+void gnublin_hd44780_driver_sc16is750::setDevicefile(std::string filename) {
+
+    _sc16is750.setDevicefile(filename);
+}
+
+
+/**
+ * @~english
+ * @brief Send byte to LCD data pins.
+ *
+ * @return 1 on success and -1 on error.
+ */
+int gnublin_hd44780_driver_sc16is750::writeByte(unsigned char byte, int mode) {
+
+    _sc16is750.digitalWrite(_rs, mode);
+
+    /* High bits. */
+    _sc16is750.digitalWrite(_d4, LOW);
+    _sc16is750.digitalWrite(_d5, LOW);
+    _sc16is750.digitalWrite(_d6, LOW);
+    _sc16is750.digitalWrite(_d7, LOW);
+
+    if ((byte & 0x10) == 0x10) {
+        _sc16is750.digitalWrite(_d4, HIGH);
+    }
+    if ((byte & 0x20) == 0x20) {
+        _sc16is750.digitalWrite(_d5, HIGH);
+    }
+    if ((byte & 0x40) == 0x40) {
+        _sc16is750.digitalWrite(_d6, HIGH);
+    }
+    if ((byte & 0x80) == 0x80) {
+        _sc16is750.digitalWrite(_d7, HIGH);
+    }
+
+    /* Toggle EN pin. */
+    usleep(LCD_DELAY);
+    _sc16is750.digitalWrite(_en, HIGH);
+    usleep(LCD_PULSE);
+    _sc16is750.digitalWrite(_en, LOW);
+    usleep(LCD_DELAY);
+
+    /* Low bits. */
+    _sc16is750.digitalWrite(_d4, LOW);
+    _sc16is750.digitalWrite(_d5, LOW);
+    _sc16is750.digitalWrite(_d6, LOW);
+    _sc16is750.digitalWrite(_d7, LOW);
+
+    if ((byte & 0x01) == 0x01) {
+        _sc16is750.digitalWrite(_d4, HIGH);
+    }
+    if ((byte & 0x02) == 0x02) {
+        _sc16is750.digitalWrite(_d5, HIGH);
+    }
+    if ((byte & 0x04) == 0x04) {
+        _sc16is750.digitalWrite(_d6, HIGH);
+    }
+    if ((byte & 0x08) == 0x08) {
+        _sc16is750.digitalWrite(_d7, HIGH);
+    }
+
+    /* Toggle EN pin. */
+    usleep(LCD_DELAY);
+    _sc16is750.digitalWrite(_en, HIGH);
+    usleep(LCD_PULSE);
+    _sc16is750.digitalWrite(_en, LOW);
     usleep(LCD_DELAY);
 
     return 1;

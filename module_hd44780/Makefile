@@ -6,9 +6,9 @@
 ## Maintainer   : Christophe Burki
 ## Created      : Sun Jun 22 11:50:16 2014
 ## Version      : 1.0.0
-## Last-Updated : Sun Jun 22 11:50:44 2014 (7200 CEST)
+## Last-Updated : Thu Jul  3 13:19:17 2014 (7200 CEST)
 ##           By : Christophe Burki
-##     Update # : 2
+##     Update # : 6
 ## URL          : 
 ## Keywords     : 
 ## Compatibility: 
@@ -46,30 +46,14 @@
 ### Code         :
 
 TARGET := test_hd44780
-SOURCES := module_hd44780.cpp test_hd44780.c
+MODULE := module_hd44780
+SOURCES := $(MODULE).cpp test_hd44780.c
 
 include ../Config.mk
 include $(GNUBLINMKDIR)/gnublin.mk
 
-CPPFLAGS += -I../module_mcp23017
-OBJECTS += ../module_mcp23017/module_mcp23017.o
-
-
-python-module: $(OBJECTS)
-	@echo "%module gnublin_module_hd44780" > gnublin_module_hd44780.i
-	@echo "%include \"std_string.i\"" >> gnublin_module_hd44780.i
-	@echo "%{" >> gnublin_module_hd44780.i
-	@echo "#include \"module_hd44780.h\"" >> gnublin_module_hd44780.i
-	@echo "%}" >> gnublin_module_hd44780.i
-	@echo "#define BOARD $(BOARD)" >> gnublin_module_hd44780.i
-	@echo "%include \"module_hd44780.h\"" >> gnublin_module_hd44780.i
-	swig2.0 -c++ -python gnublin_module_hd44780.i
-	$(GCC) $(CPPFLAGS) -fpic -I $(GNUBLINAPIDIR)/python2.7/ -c gnublin_module_hd44780_wrap.cxx
-	$(GCC) $(CPPFLAGS) -fpic -c module_hd44780.cpp
-	$(GCC) -shared gnublin_module_hd44780_wrap.o module_hd44780.o $(GNUBLINAPIDIR)/gnublin.o ../module_mcp23017/module_mcp23017.o -o _gnublin_module_hd44780.so
-
-python-module-clean : clean
-	rm -f *.i *.py *.pyc *_wrap.cxx _*.so
+CPPFLAGS += -I../module_mcp23017 -I../module_sc16is750
+OBJECTS += ../module_mcp23017/module_mcp23017.o ../module_sc16is750/module_sc16is750.o
 
 ######################################################################
 ### Makefile ends here

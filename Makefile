@@ -6,9 +6,9 @@
 ## Maintainer   : Christophe Burki 
 ## Created      : Fri Jun 13 19:48:42 2014
 ## Version      : 1.0.0
-## Last-Updated : Sun Jun 22 11:45:45 2014 (7200 CEST)
+## Last-Updated : Fri Jul  4 21:35:44 2014 (7200 CEST)
 ##           By : Christophe Burki
-##     Update # : 34
+##     Update # : 36
 ## URL          : 
 ## Keywords     : 
 ## Compatibility: 
@@ -54,6 +54,8 @@ clean: ; $(foreach module,$(MODULES),(cd module_$(module); make clean) &&):
 
 distclean: ; $(foreach module,$(MODULES),(cd module_$(module); make distclean) && (cd module_$(module); make python-module-clean) &&):
 	rm -f *~
+
+publish: ; $(foreach module,$(MODULES),(cd module_$(module); make publish) &&):
 
 python-module: ; $(foreach module,$(MODULES),(cd module_$(module); make python-module) &&):
 
