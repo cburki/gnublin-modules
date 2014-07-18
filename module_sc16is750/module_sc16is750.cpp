@@ -224,7 +224,7 @@ int gnublin_module_sc16is750::initUART(unsigned char value) {
     txBuf[0] = 0x00;
     if (_i2c.send(MCR, txBuf, 1) < 0) {
         _errorFlag = true;
-        _errorFlag = "i2c.send (MCR) Error\n";
+        _errorMessage = "i2c.send (MCR) Error\n";
         return -1;
     }
 
@@ -241,7 +241,7 @@ int gnublin_module_sc16is750::initUART(unsigned char value) {
     txBuf[0] = UART_8N1;
     if (_i2c.send(LCR, txBuf, 1) < 0) {
         _errorFlag = true;
-        _errorFlag = "i2c.send (LCR) Error\n";
+        _errorMessage = "i2c.send (LCR) Error\n";
         return -1;
     }
 
@@ -291,7 +291,7 @@ int gnublin_module_sc16is750::initUART(unsigned char value) {
     txBuf[0] = (CONF_INT_DFLT | value) & 0xf0;
     if (_i2c.send(IER, txBuf, 1) < 0) {
         _errorFlag = true;
-        _errorFlag = "i2c.send (IER) Error\n";
+        _errorMessage = "i2c.send (IER) Error\n";
         return -1;
     }
 
@@ -313,7 +313,7 @@ int gnublin_module_sc16is750::initUART(unsigned char value) {
     txBuf[0] = (CONF_INT_DFLT | value) & 0x0f;
     if (_i2c.send(IER, txBuf, 1) < 0) {
         _errorFlag = true;
-        _errorFlag = "i2c.send (IER) Error\n";
+        _errorMessage = "i2c.send (IER) Error\n";
         return -1;
     }
 
@@ -436,7 +436,7 @@ int gnublin_module_sc16is750::setDataFormat(unsigned char format) {
         }
         else {
             _errorFlag = true;
-            _errorFlag = "i2c.send (LCR) Error\n";
+            _errorMessage = "i2c.send (LCR) Error\n";
             return -1;
         }
     }
@@ -1030,7 +1030,7 @@ int gnublin_module_sc16is750::initIO(unsigned char value) {
     txBuf[0] = CONF_IO_DFLT | value;
     if (_i2c.send(IOCTRL, txBuf, 1) < 0) {
         _errorFlag = true;
-        _errorFlag = "i2c.send (IOCTRL) Error\n";
+        _errorMessage = "i2c.send (IOCTRL) Error\n";
         return -1;
     }
 
