@@ -6,9 +6,9 @@
 // Maintainer   : Christophe Burki
 // Created      : Sun May  4 11:24:24 2014
 // Version      : 1.1.0
-// Last-Updated : Sun Jun 22 14:26:24 2014 (7200 CEST)
+// Last-Updated : Sat Jul 19 15:26:56 2014 (7200 CEST)
 //           By : Christophe Burki
-//     Update # : 250
+//     Update # : 251
 // URL          : 
 // Keywords     : 
 // Compatibility: 
@@ -536,7 +536,7 @@ int gnublin_module_hd44780::_setCol(int col) {
         return -1;
     }
 
-    for (int i = 0; i < col; i++) {
+    for (int i = 1; i < col; i++) {
         if (_driver->writeByte(' ', LCD_DATA) < 0) {
             _errorFlag = true;
             _errorMessage = "driver.writeByte Error\n";
