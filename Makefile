@@ -6,9 +6,9 @@
 ## Maintainer   : Christophe Burki 
 ## Created      : Fri Jun 13 19:48:42 2014
 ## Version      : 1.0.0
-## Last-Updated : Sun Aug 31 19:51:38 2014 (7200 CEST)
+## Last-Updated : Sun Aug 31 20:19:39 2014 (7200 CEST)
 ##           By : Christophe Burki
-##     Update # : 38
+##     Update # : 40
 ## URL          : 
 ## Keywords     : 
 ## Compatibility: 
@@ -46,20 +46,20 @@
 
 include Config.mk
 
-MODULES := mcp230xx sc16is7x0 hd44780 atmega328p
+MODULES := module_mcp230xx module_sc16is7x0 module_hd44780
 
-all: ; $(foreach module,$(MODULES),(cd module_$(module); make) &&):
+all: ; $(foreach module,$(MODULES),(cd $(module); make) &&):
 
-clean: ; $(foreach module,$(MODULES),(cd module_$(module); make clean) &&):
+clean: ; $(foreach module,$(MODULES),(cd $(module); make clean) &&):
 
-distclean: ; $(foreach module,$(MODULES),(cd module_$(module); make distclean) && (cd module_$(module); make python-module-clean) &&):
+distclean: ; $(foreach module,$(MODULES),(cd $(module); make distclean) &&):
 	rm -f *~
 
-publish: ; $(foreach module,$(MODULES),(cd module_$(module); make publish) &&):
+publish: ; $(foreach module,$(MODULES),(cd $(module); make publish) &&):
 
-python-module: ; $(foreach module,$(MODULES),(cd module_$(module); make python-module) &&):
+python-module: ; $(foreach module,$(MODULES),(cd $(module); make python-module) &&):
 
-python-module-clean: ; $(foreach module,$(MODULES),(cd module_$(module); make python-module-clean) &&):
+python-module-clean: ; $(foreach module,$(MODULES),(cd $(module); make python-module-clean) &&):
 
 ######################################################################
 ### Makefile ends here
