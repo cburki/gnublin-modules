@@ -6,9 +6,9 @@
 ## Maintainer   : Christophe Burki
 ## Created      : Sun Jun 22 11:50:16 2014
 ## Version      : 1.0.0
-## Last-Updated : Thu Jul  3 13:19:17 2014 (7200 CEST)
+## Last-Updated : Sun Aug 31 20:02:14 2014 (7200 CEST)
 ##           By : Christophe Burki
-##     Update # : 6
+##     Update # : 13
 ## URL          : 
 ## Keywords     : 
 ## Compatibility: 
@@ -52,8 +52,8 @@ SOURCES := $(MODULE).cpp test_hd44780.c
 include ../Config.mk
 include $(GNUBLINMKDIR)/gnublin.mk
 
-CPPFLAGS += -I../module_mcp23017 -I../module_sc16is750
-OBJECTS += ../module_mcp23017/module_mcp23017.o ../module_sc16is750/module_sc16is750.o
+CPPFLAGS += -I../module_mcp230xx -I../module_sc16is7x0
+OBJECTS += ../module_mcp230xx/module_mcp230xx.o ../module_mcp230xx/module_mcp23017.o ../module_sc16is7x0/module_sc16is7x0.o ../module_sc16is7x0/module_sc16is750.o
 
 ######################################################################
 ### Makefile ends here
