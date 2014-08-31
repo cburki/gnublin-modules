@@ -6,9 +6,9 @@
 ## Maintainer   : Christophe Burki 
 ## Created      : Fri Jun 13 19:48:42 2014
 ## Version      : 1.0.0
-## Last-Updated : Fri Jul  4 21:35:44 2014 (7200 CEST)
+## Last-Updated : Sun Aug 31 19:51:38 2014 (7200 CEST)
 ##           By : Christophe Burki
-##     Update # : 36
+##     Update # : 38
 ## URL          : 
 ## Keywords     : 
 ## Compatibility: 
@@ -46,7 +46,7 @@
 
 include Config.mk
 
-MODULES := mcp23017 sc16is750 hd44780
+MODULES := mcp230xx sc16is7x0 hd44780 atmega328p
 
 all: ; $(foreach module,$(MODULES),(cd module_$(module); make) &&):
 
