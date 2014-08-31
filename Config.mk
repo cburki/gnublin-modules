@@ -6,9 +6,9 @@
 ## Maintainer   : Christophe Burki
 ## Created      : Fri Jun 13 20:14:19 2014
 ## Version      : 1.0.0
-## Last-Updated : Sat Jun 14 15:16:14 2014 (7200 CEST)
+## Last-Updated : Sun Aug 31 20:05:56 2014 (7200 CEST)
 ##           By : Christophe Burki
-##     Update # : 8
+##     Update # : 12
 ## URL          : 
 ## Keywords     : 
 ## Compatibility: 
@@ -52,7 +52,7 @@ GNUBLINMKDIR := $(HOME)/Burkionline/Projects/Gnublin/gnublin-make
 GNUBLINAPIDIR := $(HOME)/Burkionline/Projects/Gnublin/gnublin-api
 
 # Defines variables for publishing files on target.
-HOST := 192.168.1.106
+HOST := 192.168.1.225
 PORT := 1220
 USER := cburki
 
