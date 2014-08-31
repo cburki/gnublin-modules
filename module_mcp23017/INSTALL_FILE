@@ -1,7 +1,0 @@
-# local_path                    target_path                                                             owner           mode
-
-test_mcp23017                   /home/cburki/test_mcp23017                                              cburki:cburki   0755
-test_int_mcp23017               /home/cburki/test_int_mcp23017                                          cburki:cburki   0755
-
-gnublin_module_mcp23017.py      /usr/local/lib/python2.7/dist-packages/gnublin_module_mcp23017.py       root:staff      0644
-_gnublin_module_mcp23017.so     /usr/local/lib/python2.7/dist-packages/_gnublin_module_mcp23017.so      root:staff      0755
