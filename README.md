@@ -17,7 +17,7 @@ The compilation of these modules requires the [gnublin-make][2] repository. So b
     git clone https://github.com/cburki/gnublin-make.git
     git clone https://github.com/cburki/gnublin-modules.git
 
-The GNUBLINMKDIR and GNUBLIAPIDIR variables from the gnublin-modules/Config.mk file must modified appropriately for your environment. The GNUBLINMKDIR is the path to the gnublin-make folder. The GNUBLINAPIDIR is the path to the gnublin-api folder.
+The GNUBLINMKDIR and GNUBLIAPIDIR variables from the gnublin-modules/Config.mk file must be modified appropriately for your environment. The GNUBLINMKDIR is the path to the gnublin-make folder. The GNUBLINAPIDIR is the path to the gnublin-api folder.
 
 Next we cross-compile all modules by issuing the following commands.
 
