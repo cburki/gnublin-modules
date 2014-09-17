@@ -6,9 +6,9 @@
 // Maintainer   : Christophe Burki
 // Created      : Sun May  4 11:24:24 2014
 // Version      : 1.1.0
-// Last-Updated : Sat Jul 19 15:26:56 2014 (7200 CEST)
+// Last-Updated : Sun Sep 14 16:49:07 2014 (7200 CEST)
 //           By : Christophe Burki
-//     Update # : 251
+//     Update # : 373
 // URL          : 
 // Keywords     : 
 // Compatibility: 
@@ -76,17 +76,24 @@ const unsigned char LCD_ROWS[] = { LCD_ROW_1, LCD_ROW_2, LCD_ROW_3, LCD_ROW_4 };
 /* -------------------------------------------------------------------------- */
 
 /**
- * @~english
- * @brief Set the pins used to drive the HD44780 LCD (4 bits data interface).
- */
+  * @~english
+  * @brief Set the pins used to drive the HD44780 LCD (4 bits data interface).
+  *
+  * @param rs The RS pin.
+  * @param en The EN pin.
+  * @param d4 The D4 pin.
+  * @param d5 The D5 pin.
+  * @param d6 The D6 pin.
+  * @param d7 The D7 pin.
+  */
 gnublin_hd44780_driver::gnublin_hd44780_driver(int rs, int en, int d4, int d5, int d6, int d7) {
-
-    _rs = rs;
-    _en = en;
-    _d4 = d4;
-    _d5 = d5;
-    _d6 = d6;
-    _d7 = d7;
+ 
+     _rs = rs;
+     _en = en;
+     _d4 = d4;
+     _d5 = d5;
+     _d6 = d6;
+     _d7 = d7;
 }
 
 
@@ -102,6 +109,13 @@ gnublin_hd44780_driver::~gnublin_hd44780_driver(void) {
 /**
  * @~english
  * @brief Set the pins used to drive the HD44780 LCD (4 bits data interface).
+  *
+  * @param rs The RS pin.
+  * @param en The EN pin.
+  * @param d4 The D4 pin.
+  * @param d5 The D5 pin.
+  * @param d6 The D6 pin.
+  * @param d7 The D7 pin.
  */
 gnublin_hd44780_driver_gpio::gnublin_hd44780_driver_gpio(int rs, int en, int d4, int d5, int d6, int d7)
     : gnublin_hd44780_driver(rs, en, d4, d5, d6, d7) {
@@ -127,6 +141,8 @@ gnublin_hd44780_driver_gpio::~gnublin_hd44780_driver_gpio(void) {
  * @~english
  * @brief Send byte to LCD data pins.
  *
+ * @param byte The byte to write to the LCD.
+ * @param mode The mode for the byte to write. Either data (LCD_DATA) or command (LCD_CMD).
  * @return 1 on success and -1 on error.
  */
 int gnublin_hd44780_driver_gpio::writeByte(unsigned char byte, int mode) {
@@ -192,12 +208,180 @@ int gnublin_hd44780_driver_gpio::writeByte(unsigned char byte, int mode) {
 
 /**
  * @~english
- * @brief Set the default pins used to drive the HD44780 LCD (4 bits data interface).
- * These are the pins of the MCP23017 I/O expander.
- * 0 : RS, 1 : EN : 1, 2 : D4, 3 : D5, 4 : D6, 5 : D7
+ * @brief Set the pins used to drive the 74HC595 shift register and set the output
+ * bit (QX) of the shift register for driving the HD44780 LCD (4 bits data interface).
+  *
+  * @param rs The RS bit number for the shift register output.
+  * @param en The EN bit number for the shift register output.
+  * @param d4 The D4 bit number for the shift register output.
+  * @param d5 The D5 bit number for the shift register output.
+  * @param d6 The D6 bit number for the shift register output.
+  * @param d7 The D7 bit number for the shift register output.
+  * @param ds The DS pin for driving the 74HC595.
+  * @param shcp The SHCP pin for driving the 74HC595.
+  * @param stcp THe STCP pin for driving the 74HC595.
  */
-gnublin_hd44780_driver_mcp23017::gnublin_hd44780_driver_mcp23017(void)
-    : gnublin_hd44780_driver(0, 1, 2, 3, 4, 5) {
+gnublin_hd44780_driver_74hc595::gnublin_hd44780_driver_74hc595(int rs, int en, int d4, int d5, int d6, int d7, int ds, int shcp, int stcp)
+    : gnublin_hd44780_driver(rs, en, d4, d5, d6, d7) {
+
+    _ds = ds;
+    _shcp = shcp;
+    _stcp = stcp;
+
+    _gpio.pinMode(_ds, OUTPUT);
+    _gpio.pinMode(_shcp, OUTPUT);
+    _gpio.pinMode(_stcp, OUTPUT);
+
+    _gpio.digitalWrite(_ds, LOW);
+    _gpio.digitalWrite(_shcp, LOW);
+    _gpio.digitalWrite(_stcp, LOW);
+}
+
+
+/**
+ * @~english
+ * @brief
+ */
+gnublin_hd44780_driver_74hc595::~gnublin_hd44780_driver_74hc595(void) {
+}
+
+
+/**
+ * @~english
+ * @brief
+ */
+void gnublin_hd44780_driver_74hc595::shiftByte(unsigned char value, int msbFirst) {
+
+    for (int i = 0; i < 8; i++) {
+
+        if (msbFirst == 1) {  /* MSB First */
+            if (value & 0x80) {
+                _gpio.digitalWrite(_ds, HIGH);
+            }
+            else {
+                _gpio.digitalWrite(_ds, LOW);
+            }
+        }
+        else {                /* LSB First */
+            if (value & 1) {
+                _gpio.digitalWrite(_ds, HIGH);
+            }
+            else {
+                _gpio.digitalWrite(_ds, LOW);
+            }
+        }
+
+        _gpio.digitalWrite(_shcp, HIGH);
+        _gpio.digitalWrite(_ds, LOW);
+        _gpio.digitalWrite(_shcp, LOW);
+
+        if (msbFirst == 1) {  /* MSB First */
+            value <<= 1;
+        }
+        else {                /* LSB First */
+            value >>= 1;
+        }
+    }
+}
+
+
+/**
+ * @~english
+ * @brief
+ */
+void gnublin_hd44780_driver_74hc595::latchByte(void) {
+
+    _gpio.digitalWrite(_stcp, HIGH);
+    _gpio.digitalWrite(_stcp, LOW);
+}
+
+
+/**
+ * @~english
+ * @brief Send byte to LCD data pins.
+ *
+ * @param byte The byte to write to the LCD.
+ * @param mode The mode for the byte to write. Either data (LCD_DATA) or command (LCD_CMD).
+ * @return 1 on success and -1 on error.
+ */
+int gnublin_hd44780_driver_74hc595::writeByte(unsigned char byte, int mode) {
+
+    unsigned char value = 0x00 | (mode << _rs);
+
+    /* High bits. */
+    if ((byte & 0x10) == 0x10) {
+        value |= (1 << _d4);
+    }
+    if ((byte & 0x20) == 0x20) {
+        value |= (1 << _d5);
+    }
+    if ((byte & 0x40) == 0x40) {
+        value |= (1 << _d6);
+    }
+    if ((byte & 0x80) == 0x80) {
+        value |= (1 << _d7);
+    }
+
+    /* Toggle EN pin. */
+    usleep(LCD_DELAY);
+    value |= (1 << _en);
+    shiftByte(value);
+    latchByte();
+    usleep(LCD_PULSE);
+    value = 0x00;
+    shiftByte(value);
+    latchByte();
+    usleep(LCD_DELAY);
+
+    /* Low bits. */
+    value = 0x00 | (mode << _rs);
+    if ((byte & 0x01) == 0x01) {
+        value |= (1 << _d4);
+    }
+    if ((byte & 0x02) == 0x02) {
+        value |= (1 << _d5);
+    }
+    if ((byte & 0x04) == 0x04) {
+        value |= (1 << _d6);
+    }
+    if ((byte & 0x08) == 0x08) {
+        value |= (1 << _d7);
+    }
+
+    /* Toggle EN pin. */
+    usleep(LCD_DELAY);
+    value |= (1 << _en);
+    shiftByte(value);
+    latchByte();
+    usleep(LCD_PULSE);
+    value = 0x00;
+    shiftByte(value);
+    latchByte();
+    usleep(LCD_DELAY);
+    
+    return 1;
+}
+
+/* -------------------------------------------------------------------------- */
+
+/**
+ * @~english
+ * @brief Set the pins used to drive the HD44780 LCD (4 bits data interface).
+ * These are the pins of the MCP23017 I/O expander.
+  *
+  * @param rs The RS pin.
+  * @param en The EN pin.
+  * @param d4 The D4 pin.
+  * @param d5 The D5 pin.
+  * @param d6 The D6 pin.
+  * @param d7 The D7 pin.
+  * @param i2cAddress The i2c address of the device.
+  * @param i2cFilename The i2c device file
+ */
+gnublin_hd44780_driver_mcp23017::gnublin_hd44780_driver_mcp23017(int rs, int en, int d4, int d5, int d6, int d7, int i2cAddress, std::string i2cFilename)
+    : gnublin_hd44780_driver(rs, en, d4, d5, d6, d7) {
+
+    _mcp23017 = gnublin_module_mcp23017(i2cAddress, i2cFilename);
 
     _mcp23017.pinMode(_rs, OUTPUT);
     _mcp23017.pinMode(_en, OUTPUT);
@@ -213,23 +397,6 @@ gnublin_hd44780_driver_mcp23017::gnublin_hd44780_driver_mcp23017(void)
  * @brief
  */
 gnublin_hd44780_driver_mcp23017::~gnublin_hd44780_driver_mcp23017(void) {
-}
-
-
-/**
- * @~english
- * @brief Set the pins used to drive the HD44780 LCD (4 bits data interface).
- * These are the pins of the MCP23017 I/O expander.
- */
-gnublin_hd44780_driver_mcp23017::gnublin_hd44780_driver_mcp23017(int rs, int en, int d4, int d5, int d6, int d7)
-    : gnublin_hd44780_driver(rs, en, d4, d5, d6, d7) {
-
-    _mcp23017.pinMode(_rs, OUTPUT);
-    _mcp23017.pinMode(_en, OUTPUT);
-    _mcp23017.pinMode(_d4, OUTPUT);
-    _mcp23017.pinMode(_d5, OUTPUT);
-    _mcp23017.pinMode(_d6, OUTPUT);
-    _mcp23017.pinMode(_d7, OUTPUT);
 }
 
 
@@ -261,6 +428,8 @@ void gnublin_hd44780_driver_mcp23017::setDevicefile(std::string filename) {
  * @~english
  * @brief Send byte to LCD data pins.
  *
+ * @param byte The byte to write to the LCD.
+ * @param mode The mode for the byte to write. Either data (LCD_DATA) or command (LCD_CMD).
  * @return 1 on success and -1 on error.
  */
 int gnublin_hd44780_driver_mcp23017::writeByte(unsigned char byte, int mode) {
@@ -326,12 +495,22 @@ int gnublin_hd44780_driver_mcp23017::writeByte(unsigned char byte, int mode) {
 
 /**
  * @~english
- * @brief Set the default pins used to drive the HD44780 LCD (4 bits data interface).
+ * @brief Set the pins used to drive the HD44780 LCD (4 bits data interface).
  * These are the pins of the SC16IS750 device.
- * 0 : RS, 1 : EN : 1, 2 : D4, 3 : D5, 4 : D6, 5 : D7
+  *
+  * @param rs The RS pin.
+  * @param en The EN pin.
+  * @param d4 The D4 pin.
+  * @param d5 The D5 pin.
+  * @param d6 The D6 pin.
+  * @param d7 The D7 pin.
+  * @param i2cAddress The i2c address of the device.
+  * @param i2cFilename The i2c device file
  */
-gnublin_hd44780_driver_sc16is750::gnublin_hd44780_driver_sc16is750(void)
-    : gnublin_hd44780_driver(0, 1, 2, 3, 4, 5) {
+gnublin_hd44780_driver_sc16is750::gnublin_hd44780_driver_sc16is750(int rs, int en, int d4, int d5, int d6, int d7, int i2cAddress, std::string i2cFilename)
+    : gnublin_hd44780_driver(rs, en, d4, d5, d6, d7) {
+
+    _sc16is750 = gnublin_module_sc16is750(i2cAddress, i2cFilename);
 
     _sc16is750.pinMode(_rs, OUTPUT);
     _sc16is750.pinMode(_en, OUTPUT);
@@ -347,23 +526,6 @@ gnublin_hd44780_driver_sc16is750::gnublin_hd44780_driver_sc16is750(void)
  * @brief
  */
 gnublin_hd44780_driver_sc16is750::~gnublin_hd44780_driver_sc16is750(void) {
-}
-
-
-/**
- * @~english
- * @brief Set the pins used to drive the HD44780 LCD (4 bits data interface).
- * These are the pins of the SC16IS750 device.
- */
-gnublin_hd44780_driver_sc16is750::gnublin_hd44780_driver_sc16is750(int rs, int en, int d4, int d5, int d6, int d7)
-    : gnublin_hd44780_driver(rs, en, d4, d5, d6, d7) {
-
-    _sc16is750.pinMode(_rs, OUTPUT);
-    _sc16is750.pinMode(_en, OUTPUT);
-    _sc16is750.pinMode(_d4, OUTPUT);
-    _sc16is750.pinMode(_d5, OUTPUT);
-    _sc16is750.pinMode(_d6, OUTPUT);
-    _sc16is750.pinMode(_d7, OUTPUT);
 }
 
 
@@ -395,6 +557,8 @@ void gnublin_hd44780_driver_sc16is750::setDevicefile(std::string filename) {
  * @~english
  * @brief Send byte to LCD data pins.
  *
+ * @param byte The byte to write to the LCD.
+ * @param mode The mode for the byte to write. Either data (LCD_DATA) or command (LCD_CMD).
  * @return 1 on success and -1 on error.
  */
 int gnublin_hd44780_driver_sc16is750::writeByte(unsigned char byte, int mode) {

@@ -6,7 +6,7 @@ This module support characters LCDs based on the HD44780 chip. The LCD is contro
  - GPIO : The LCD is directly connected to the GPIOs.
  - MCP23017 : The LCD is connected to the GPIOs of a MCP23017 device.
  - SC16IS750 : The LCD is connected to the GPIOs of a SC16IS750 device.
-
+ - 74HC595 : The LCD is connected to the parallel output of a 74HC595 shift register.
 
 Installation
 ------------

@@ -6,9 +6,9 @@
  * Maintainer   : Christophe Burki
  * Created      : Sun May  4 14:30:36 2014
  * Version      : 1.0.0
- * Last-Updated : Sun Jun 22 11:40:30 2014 (7200 CEST)
+ * Last-Updated : Sun Sep 14 16:41:32 2014 (7200 CEST)
  *           By : Christophe Burki
- *     Update # : 55
+ *     Update # : 72
  * URL          : 
  * Keywords     : 
  * Compatibility: 
@@ -56,8 +56,10 @@ int main(void) {
     printf("Testing the gnublin hd44780 module.\n");
 
     gnublin_hd44780_driver_gpio driverGpio(17, 18, 27, 22, 23, 24);
-    gnublin_hd44780_driver_mcp23017 driverMcp23017;
-    gnublin_module_hd44780 lcd(&driverMcp23017);
+    gnublin_hd44780_driver_mcp23017 driverMcp23017(0, 1, 2, 3, 4, 5);
+    gnublin_hd44780_driver_sc16is750 driverSc16Is750(0, 1, 2, 3, 4, 5);
+    gnublin_hd44780_driver_74hc595 driver74Hc595(0, 1, 2, 3, 4, 5, 23, 24, 25);
+    gnublin_module_hd44780 lcd(&driver74Hc595);
 
     lcd.init();
     if (lcd.fail()) {

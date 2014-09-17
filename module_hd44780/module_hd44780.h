@@ -5,10 +5,10 @@
  * Author       : Christophe Burki
  * Maintainer   : Christophe Burki
  * Created      : Sat May  3 18:21:57 2014
- * Version      : 1.1.0
- * Last-Updated : Sun Jun 22 14:24:33 2014 (7200 CEST)
+ * Version      : 1.2.0
+ * Last-Updated : Wed Sep 17 13:12:14 2014 (7200 CEST)
  *           By : Christophe Burki
- *     Update # : 91
+ *     Update # : 110
  * URL          : 
  * Keywords     : 
  * Compatibility: 
@@ -23,7 +23,8 @@
 
 /* Change log:
  *
- * 2014-06-22 : Added driver for the sc16is750 device. *
+ * 2014-06-22 : Added driver for the sc16is750 device.
+ * 2014-09-14 : Added driver for the 74hc595 shift register.
  * 
  * 
  */
@@ -99,6 +100,31 @@ class gnublin_hd44780_driver_gpio : public gnublin_hd44780_driver {
 /* -------------------------------------------------------------------------- */
 
 /**
+ * @class gnublin_hd44780_driver_74hc595
+ * @~english
+ * @brief Class for accessing a HD44780 compatible LCD connected via a 74HC595
+ * shift register.
+ */
+class gnublin_hd44780_driver_74hc595 : public gnublin_hd44780_driver {
+
+ private :
+    gnublin_gpio _gpio;
+    int _ds;
+    int _shcp;
+    int _stcp;
+
+    void shiftByte(unsigned char value, int msbFirst = 1);
+    void latchByte(void);
+
+ public :
+    gnublin_hd44780_driver_74hc595(int rs, int en, int d4, int d5, int d6, int d7, int ds, int shcp, int stcp);
+    ~gnublin_hd44780_driver_74hc595(void);
+    int writeByte(unsigned char byte, int mode);
+};
+
+/* -------------------------------------------------------------------------- */
+
+/**
  * @class gnublin_hd44780_driver_mcp23017
  * @~english
  * @brief Class for accessing a HD44780 compatible LCD connected via a
@@ -110,8 +136,7 @@ class gnublin_hd44780_driver_mcp23017 : public gnublin_hd44780_driver {
     gnublin_module_mcp23017 _mcp23017;
 
  public :
-    gnublin_hd44780_driver_mcp23017(void);
-    gnublin_hd44780_driver_mcp23017(int rs, int en, int d4, int d5, int d6, int d7);
+    gnublin_hd44780_driver_mcp23017(int rs, int en, int d4, int d5, int d6, int d7, int i2cAddress = 0x20, std::string i2cFilename = "/dev/i2c-1");
     ~gnublin_hd44780_driver_mcp23017(void);
     void setAddress(int address);
     void setDevicefile(std::string filename);
@@ -132,8 +157,7 @@ class gnublin_hd44780_driver_sc16is750 : public gnublin_hd44780_driver {
     gnublin_module_sc16is750 _sc16is750;
 
  public :
-    gnublin_hd44780_driver_sc16is750(void);
-    gnublin_hd44780_driver_sc16is750(int rs, int en, int d4, int d5, int d6, int d7);
+    gnublin_hd44780_driver_sc16is750(int rs, int en, int d4, int d5, int d6, int d7, int i2cAddress = 0x20, std::string i2cFilename = "/dev/i2c-1");
     ~gnublin_hd44780_driver_sc16is750(void);
     void setAddress(int address);
     void setDevicefile(std::string filename);
