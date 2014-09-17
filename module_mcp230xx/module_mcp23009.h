@@ -6,9 +6,9 @@
  * Maintainer   : Christophe Burki
  * Created      : Sun Apr 27 15:27:32 2014
  * Version      : 1.0.0
- * Last-Updated : Sat Aug 30 19:29:02 2014 (7200 CEST)
+ * Last-Updated : Thu Sep 11 11:06:04 2014 (7200 CEST)
  *           By : Christophe Burki
- *     Update # : 7
+ *     Update # : 9
  * URL          : 
  * Keywords     : 
  * Compatibility: 
@@ -61,7 +61,7 @@
 class gnublin_module_mcp23009 : public gnublin_module_mcp230xx {
 
  public :
-    gnublin_module_mcp23009(void);
+    gnublin_module_mcp23009(int address = 0x20, std::string filename = "/dev/i2c-1");
     int portMode(std::string direction);
     int writePort(unsigned char value);
     unsigned char readPort(void);

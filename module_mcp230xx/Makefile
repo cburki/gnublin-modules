@@ -6,9 +6,9 @@
 ## Maintainer   : Christophe Burki
 ## Created      : Sun Jun 22 11:51:00 2014
 ## Version      : 1.0.0
-## Last-Updated : Sun Aug 31 16:20:54 2014 (7200 CEST)
+## Last-Updated : Wed Sep  3 17:12:31 2014 (7200 CEST)
 ##           By : Christophe Burki
-##     Update # : 52
+##     Update # : 61
 ## URL          : 
 ## Keywords     : 
 ## Compatibility: 
@@ -45,28 +45,20 @@
 ## 
 ### Code         :
 
-# test_mcp23017 : make PROG=test_mcp23017
-# test_int_mcp23017 : make PROG=test_int_mcp23017
+# test_mcp23017 : make TARGET=test_mcp23017
+# test_int_mcp23017 : make TARGET=test_int_mcp23017
 
 MODULES := module_mcp230xx module_mcp23017 module_mcp23009
 MODOBJECTS := $(addsuffix .o, $(MODULES))
 SOURCES := $(addsuffix .cpp, $(MODULES))
 LIBRARY := gnublin_module_mcp230xx.a
 
-ifndef PROG
+ifndef TARGET
 TARGET := test_mcp23017
-SOURCES += test_mcp23017.c
 endif
 
-ifeq ($(PROG), test_mcp23017)
-TARGET := test_mcp23017
-SOURCES += test_mcp23017.c
-endif
+SOURCES += $(TARGET).c
 
-ifeq ($(PROG), test_int_mcp23017)
-TARGET := test_int_mcp23017
-SOURCES += test_int_mcp23017.c
-endif
 
 include ../Config.mk
 include $(GNUBLINMKDIR)/gnublin.mk
@@ -75,7 +67,7 @@ include $(GNUBLINMKDIR)/gnublin.mk
 lib : $(MODOBJECTS)
 	$(AR) rcs $(LIBRARY) $(MODOBJECTS)
 
-python-module:
+python-module :: $(MODOBJECTS)
 	@echo "%module gnublin_module_mcp230xx" > gnublin_module_mcp230xx.i
 	@echo "%include \"std_string.i\"" >> gnublin_module_mcp230xx.i
 	@echo "%{" >> gnublin_module_mcp230xx.i

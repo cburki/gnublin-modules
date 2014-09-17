@@ -6,9 +6,9 @@
  * Maintainer   : Christophe Burki
  * Created      : Sun Apr 27 15:27:32 2014
  * Version      : 1.0.0
- * Last-Updated : Sat Aug 30 19:36:36 2014 (7200 CEST)
+ * Last-Updated : Thu Sep 11 11:06:34 2014 (7200 CEST)
  *           By : Christophe Burki
- *     Update # : 104
+ *     Update # : 105
  * URL          : 
  * Keywords     : 
  * Compatibility: 
@@ -61,7 +61,7 @@
 class gnublin_module_mcp23017 : public gnublin_module_mcp230xx {
 
  public :
-    gnublin_module_mcp23017(void);
+    gnublin_module_mcp23017(int address = 0x20, std::string filename = "/dev/i2c-1");
 };
 
 /* -------------------------------------------------------------------------- */

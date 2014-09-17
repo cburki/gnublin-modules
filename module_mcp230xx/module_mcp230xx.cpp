@@ -6,9 +6,9 @@
 // Maintainer   : Christophe Burki
 // Created      : Sun Apr 27 15:39:20 2014
 // Version      : 1.0.0
-// Last-Updated : Sat Aug 30 19:25:24 2014 (7200 CEST)
+// Last-Updated : Thu Sep 11 11:13:04 2014 (7200 CEST)
 //           By : Christophe Burki
-//     Update # : 30
+//     Update # : 41
 // URL          : 
 // Keywords     : 
 // Compatibility: 
@@ -88,8 +88,10 @@
  *
  * @param ports The number of ports of the device.
  * @param pins The number of pins of the device.
+ * @param address The i2c address.
+ * @param filename The i2c device file.
  */
-gnublin_module_mcp230xx::gnublin_module_mcp230xx(int ports, int pins) {
+gnublin_module_mcp230xx::gnublin_module_mcp230xx(int ports, int pins, int address, std::string filename) {
 
     _errorFlag = false;
     _ports = ports;
@@ -99,8 +101,8 @@ gnublin_module_mcp230xx::gnublin_module_mcp230xx(int ports, int pins) {
         _registerShift = 1;
     }
 
-    setAddress(0x20);
-    setDevicefile("/dev/i2c-1");
+    setAddress(address);
+    setDevicefile(filename);
     init(CONF_SEQOP);
 
     _isr = NULL;
@@ -117,6 +119,7 @@ gnublin_module_mcp230xx::gnublin_module_mcp230xx(int ports, int pins) {
  * @~english
  * @brief Initialize the MCP23017 or MCP23009.
  *
+ * @value The initialization value.
  * @return -1 on error and 0 on success.
  */
 int gnublin_module_mcp230xx::init(unsigned char value) {
@@ -200,8 +203,8 @@ void gnublin_module_mcp230xx::setDevicefile(std::string filename) {
 int gnublin_module_mcp230xx::pinMode(int pin, std::string direction) {
 
     _errorFlag = false;
-    unsigned char txBuf[1];
-    unsigned char rxBuf[1];
+    unsigned char txValue;
+    unsigned char rxValue;
     int registerAddress;
 
     if (pin < 0 || pin > _pins - 1) {
@@ -212,24 +215,24 @@ int gnublin_module_mcp230xx::pinMode(int pin, std::string direction) {
 
     if (pin >= 0 && pin <= 7) {  /* Port A */
         registerAddress = IODIRA  >> _registerShift;
-        txBuf[0] = 1 << pin;
+        txValue = 1 << pin;
     }
     else if (pin >= 8 && pin <= 15) {  /* Port B */
         registerAddress = IODIRB;
-        txBuf[0] = 1 << (pin - 8);
+        txValue = 1 << (pin - 8);
     }
     else {
         return -1;
     }
 
     /* Read the current state. */
-    if (_i2c.receive(registerAddress, rxBuf, 1) > 0) {
+    if (_i2c.receive(registerAddress, &rxValue, 1) > 0) {
             
         if (direction == OUTPUT) {
-            txBuf[0] = rxBuf[0] & ~txBuf[0];
+            txValue = rxValue & ~txValue;
         }
         else if (direction == INPUT) {
-            txBuf[0] = rxBuf[0] | txBuf[0];
+            txValue = rxValue | txValue;
         }
         else {
             _errorFlag = true;
@@ -237,7 +240,7 @@ int gnublin_module_mcp230xx::pinMode(int pin, std::string direction) {
             return -1;
         }
         
-        if (_i2c.send(registerAddress, txBuf, 1) > 0) {
+        if (_i2c.send(registerAddress, &txValue, 1) > 0) {
             return 1;
         }
         else {
@@ -271,7 +274,7 @@ int gnublin_module_mcp230xx::pinMode(int pin, std::string direction) {
 int gnublin_module_mcp230xx::portMode(int port, std::string direction) {
 
     _errorFlag = false;
-    unsigned char txBuf[1];
+    unsigned char txValue;
     int registerAddress;
 
     if (port < 0 || port > _ports - 1) {
@@ -291,10 +294,10 @@ int gnublin_module_mcp230xx::portMode(int port, std::string direction) {
     }
 
     if (direction == OUTPUT) {
-        txBuf[0] = 0x00;
+        txValue = 0x00;
     }
     else if (direction == INPUT) {
-        txBuf[0] = 0xff;
+        txValue = 0xff;
     }
     else {
         _errorFlag = true;
@@ -302,7 +305,7 @@ int gnublin_module_mcp230xx::portMode(int port, std::string direction) {
         return -1;
     }
     
-    if (_i2c.send(registerAddress, txBuf, 1) > 0) {
+    if (_i2c.send(registerAddress, &txValue, 1) > 0) {
         return 1;
     }
     else {
@@ -328,8 +331,8 @@ int gnublin_module_mcp230xx::portMode(int port, std::string direction) {
 int gnublin_module_mcp230xx::digitalWrite(int pin, int value) {
 
     _errorFlag = false;
-    unsigned char txBuf[1];
-    unsigned char rxBuf[1];
+    unsigned char txValue;
+    unsigned char rxValue;
     int registerAddress;
 
     if (pin < 0 || pin > _pins - 1) {
@@ -340,24 +343,24 @@ int gnublin_module_mcp230xx::digitalWrite(int pin, int value) {
 
     if (pin >= 0 && pin <= 7) {  /* Port A */
         registerAddress = OLATA >> _registerShift;
-        txBuf[0] = 1 << pin;
+        txValue = 1 << pin;
     }
     else if (pin >= 8 && pin <= 15) {  /* Port B */
         registerAddress = OLATB;
-        txBuf[0] = 1 << (pin - 8);
+        txValue = 1 << (pin - 8);
     }
     else {
         return -1;
     }
 
     /* Read the current state. */
-    if (_i2c.receive(registerAddress, rxBuf, 1) > 0) {
+    if (_i2c.receive(registerAddress, &rxValue, 1) > 0) {
             
         if (value == 0) {
-            txBuf[0] = rxBuf[0] & ~txBuf[0];
+            txValue = rxValue & ~txValue;
         }
         else if (value == 1) {
-            txBuf[0] = rxBuf[0] | txBuf[0];
+            txValue = rxValue | txValue;
         }
         else {
             _errorFlag = true;
@@ -365,7 +368,7 @@ int gnublin_module_mcp230xx::digitalWrite(int pin, int value) {
             return -1;
         }
         
-        if (_i2c.send(registerAddress, txBuf, 1) > 0) {
+        if (_i2c.send(registerAddress, &txValue, 1) > 0) {
             return 1;
         }
         else {
@@ -397,7 +400,7 @@ int gnublin_module_mcp230xx::digitalWrite(int pin, int value) {
 int gnublin_module_mcp230xx::digitalRead(int pin) {
 
     _errorFlag = false;
-    unsigned char rxBuf[1];
+    unsigned char rxValue;
     int registerAddress;
     int shift;
 
@@ -419,14 +422,14 @@ int gnublin_module_mcp230xx::digitalRead(int pin) {
         return -1;
     }
 
-    if (_i2c.receive(registerAddress, rxBuf, 1) > 0) {
-        rxBuf[0] <<= shift;  /* MSB is now the pin we want to read from. */
-        rxBuf[0] &= 128;     /* Set all bits to 0 except the MSB. */
+    if (_i2c.receive(registerAddress, &rxValue, 1) > 0) {
+        rxValue <<= shift;  /* MSB is now the pin we want to read from. */
+        rxValue &= 128;     /* Set all bits to 0 except the MSB. */
 
-        if (rxBuf[0] == 0) {
+        if (rxValue == 0) {
             return 0;
         }
-        else if (rxBuf[0] == 128) {
+        else if (rxValue == 128) {
             return 1;
         }
         else {
@@ -471,8 +474,6 @@ int gnublin_module_mcp230xx::readState(int pin) {
 int gnublin_module_mcp230xx::writePort(int port, unsigned char value) {
 
     _errorFlag = false;
-    unsigned char buffer[1];
-    buffer[0] = value;
     int registerAddress;
 
     if (port < 0 || port > _ports - 1) {
@@ -491,7 +492,7 @@ int gnublin_module_mcp230xx::writePort(int port, unsigned char value) {
         return -1;
     }
 
-    if (_i2c.send(registerAddress, buffer, 1) > 0) {
+    if (_i2c.send(registerAddress, &value, 1) > 0) {
         return 1;
     }
     else {
@@ -516,7 +517,7 @@ int gnublin_module_mcp230xx::writePort(int port, unsigned char value) {
 unsigned char gnublin_module_mcp230xx::readPort(int port) {
 
     _errorFlag = false;
-    unsigned char rxBuf[1];
+    unsigned char rxValue;
     int registerAddress;
 
     if (port < 0 || port > _ports - 1) {
@@ -535,8 +536,8 @@ unsigned char gnublin_module_mcp230xx::readPort(int port) {
         return -1;
     }
 
-    if (_i2c.receive(registerAddress, rxBuf, 1) > 0) {
-        return rxBuf[0];
+    if (_i2c.receive(registerAddress, &rxValue, 1) > 0) {
+        return rxValue;
     }
     else {
         _errorFlag = true;
@@ -561,12 +562,12 @@ unsigned char gnublin_module_mcp230xx::readPort(int port) {
 int gnublin_module_mcp230xx::pinIntMode(int pin, std::string mode) {
 
     _errorFlag = false;
-    unsigned char rxIntEnBuf[1];
-    unsigned char rxDefValBuf[1];
-    unsigned char rxIntConBuf[1];
-    unsigned char txIntEnBuf[1];
-    unsigned char txDefValBuf[1];
-    unsigned char txIntConBuf[1];
+    unsigned char rxIntEn;
+    unsigned char rxDefVal;
+    unsigned char rxIntCon;
+    unsigned char txIntEn;
+    unsigned char txDefVal;
+    unsigned char txIntCon;
     int registerIntEn;
     int registerDefVal;
     int registerIntCon;
@@ -581,60 +582,60 @@ int gnublin_module_mcp230xx::pinIntMode(int pin, std::string mode) {
         registerIntEn = GPINTENA >> _registerShift;
         registerDefVal = DEFVALA >> _registerShift;
         registerIntCon = INTCONA >> _registerShift;
-        txIntEnBuf[0] = 1 << pin;
-        txDefValBuf[0] = 1 << pin;
-        txIntConBuf[0] = 1 << pin;
+        txIntEn = 1 << pin;
+        txDefVal = 1 << pin;
+        txIntCon = 1 << pin;
     }
     else if (pin >= 8 && pin <= 15) {  /* Port B */
         registerIntEn = GPINTENB;
         registerDefVal = DEFVALB;
         registerIntCon = INTCONB;
-        txIntEnBuf[0] = 1 << (pin - 8);
-        txDefValBuf[0] = 1 << (pin - 8);
-        txIntConBuf[0] = 1 << (pin - 8);
+        txIntEn = 1 << (pin - 8);
+        txDefVal = 1 << (pin - 8);
+        txIntCon = 1 << (pin - 8);
     }
     else {
         return -1;
     }
 
     /* Read the current states. */
-    if (_i2c.receive(registerDefVal, rxDefValBuf, 1) < 0) {
+    if (_i2c.receive(registerDefVal, &rxDefVal, 1) < 0) {
         _errorFlag = true;
         _errorMessage = "i2c.receive Error\n";
         return -1;
     }
 
-    if (_i2c.receive(registerIntCon, rxIntConBuf, 1) < 0) {
+    if (_i2c.receive(registerIntCon, &rxIntCon, 1) < 0) {
         _errorFlag = true;
         _errorMessage = "i2c.receive Error\n";
         return -1;
     }
 
-    if (_i2c.receive(registerIntEn, rxIntEnBuf, 1) < 0) {
+    if (_i2c.receive(registerIntEn, &rxIntEn, 1) < 0) {
         _errorFlag = true;
         _errorMessage = "i2c.receive Error\n";
         return -1;
     }
 
     if (mode == INT_CHANGE) {
-        txDefValBuf[0] = rxDefValBuf[0] & ~txDefValBuf[0];
-        txIntConBuf[0] = rxIntConBuf[0] & ~txIntConBuf[0];
-        txIntEnBuf[0] = rxIntEnBuf[0] | txIntEnBuf[0];
+        txDefVal = rxDefVal & ~txDefVal;
+        txIntCon = rxIntCon & ~txIntCon;
+        txIntEn = rxIntEn | txIntEn;
     }
     else if (mode == INT_HIGH) {
-        txDefValBuf[0] = rxDefValBuf[0] & ~txDefValBuf[0];
-        txIntConBuf[0] = rxIntConBuf[0] | txIntConBuf[0];
-        txIntEnBuf[0] = rxIntEnBuf[0] | txIntEnBuf[0];
+        txDefVal = rxDefVal & ~txDefVal;
+        txIntCon = rxIntCon | txIntCon;
+        txIntEn = rxIntEn | txIntEn;
     }
     else if (mode == INT_LOW) {
-        txDefValBuf[0] = rxDefValBuf[0] | txDefValBuf[0];
-        txIntConBuf[0] = rxIntConBuf[0] | txIntConBuf[0];
-        txIntEnBuf[0] = rxIntEnBuf[0] | txIntEnBuf[0];
+        txDefVal = rxDefVal | txDefVal;
+        txIntCon = rxIntCon | txIntCon;
+        txIntEn = rxIntEn | txIntEn;
     }
     else if (mode == INT_NONE) {
-        txDefValBuf[0] = rxDefValBuf[0] & ~txDefValBuf[0];
-        txIntConBuf[0] = rxIntConBuf[0] & ~txIntConBuf[0];
-        txIntEnBuf[0] = rxIntEnBuf[0] & ~txIntEnBuf[0];
+        txDefVal = rxDefVal & ~txDefVal;
+        txIntCon = rxIntCon & ~txIntCon;
+        txIntEn = rxIntEn & ~txIntEn;
     }
     else {
         _errorFlag = true;
@@ -642,19 +643,19 @@ int gnublin_module_mcp230xx::pinIntMode(int pin, std::string mode) {
         return -1;
     }
 
-    if (_i2c.send(registerDefVal, txDefValBuf, 1) < 0) {
+    if (_i2c.send(registerDefVal, &txDefVal, 1) < 0) {
         _errorFlag = true;
         _errorMessage = "i2c.send Error\n";
         return -1;
     }
 
-    if (_i2c.send(registerIntCon, txIntConBuf, 1) < 0) {
+    if (_i2c.send(registerIntCon, &txIntCon, 1) < 0) {
         _errorFlag = true;
         _errorMessage = "i2c.send Error\n";
         return -1;
     }
 
-    if (_i2c.send(registerIntEn, txIntEnBuf, 1) < 0) {
+    if (_i2c.send(registerIntEn, &txIntEn, 1) < 0) {
         _errorFlag = true;
         _errorMessage = "i2c.send Error\n";
         return -1;
@@ -675,9 +676,9 @@ int gnublin_module_mcp230xx::pinIntMode(int pin, std::string mode) {
 int gnublin_module_mcp230xx::portIntMode(int port, std::string mode) {
 
     _errorFlag = false;
-    unsigned char txIntEnBuf[1];
-    unsigned char txDefValBuf[1];
-    unsigned char txIntConBuf[1];
+    unsigned char txIntEn;
+    unsigned char txDefVal;
+    unsigned char txIntCon;
     int registerIntEn;
     int registerDefVal;
     int registerIntCon;
@@ -703,24 +704,24 @@ int gnublin_module_mcp230xx::portIntMode(int port, std::string mode) {
     }
 
     if (mode == INT_CHANGE) {
-        txDefValBuf[0] = 0x00;
-        txIntConBuf[0] = 0x00;
-        txIntEnBuf[0] = 0xff;
+        txDefVal = 0x00;
+        txIntCon = 0x00;
+        txIntEn = 0xff;
     }
     else if (mode == INT_HIGH) {
-        txDefValBuf[0] = 0x00;
-        txIntConBuf[0] = 0xff;
-        txIntEnBuf[0] = 0xff;
+        txDefVal = 0x00;
+        txIntCon = 0xff;
+        txIntEn = 0xff;
     }
     else if (mode == INT_LOW) {
-        txDefValBuf[0] = 0xff;
-        txIntConBuf[0] = 0xff;
-        txIntEnBuf[0] = 0xff;
+        txDefVal = 0xff;
+        txIntCon = 0xff;
+        txIntEn = 0xff;
     }
     else if (mode == INT_NONE) {
-        txDefValBuf[0] = 0x00;
-        txIntConBuf[0] = 0x00;
-        txIntEnBuf[0] = 0x00;
+        txDefVal = 0x00;
+        txIntCon = 0x00;
+        txIntEn = 0x00;
     }
     else {
         _errorFlag = true;
@@ -728,7 +729,7 @@ int gnublin_module_mcp230xx::portIntMode(int port, std::string mode) {
         return -1;
     }
 
-    if (_i2c.send(registerDefVal, txDefValBuf, 1) > 0) {
+    if (_i2c.send(registerDefVal, &txDefVal, 1) > 0) {
     }
     else {
         _errorFlag = true;
@@ -736,7 +737,7 @@ int gnublin_module_mcp230xx::portIntMode(int port, std::string mode) {
         return -1;
     }
 
-    if (_i2c.send(registerIntCon, txIntConBuf, 1) > 0) {
+    if (_i2c.send(registerIntCon, &txIntCon, 1) > 0) {
     }
     else {
         _errorFlag = true;
@@ -744,7 +745,7 @@ int gnublin_module_mcp230xx::portIntMode(int port, std::string mode) {
         return -1;
     }
 
-    if (_i2c.send(registerIntEn, txIntEnBuf, 1) > 0) {
+    if (_i2c.send(registerIntEn, &txIntEn, 1) > 0) {
     }
     else {
         _errorFlag = true;
@@ -767,8 +768,8 @@ int gnublin_module_mcp230xx::portIntMode(int port, std::string mode) {
 int gnublin_module_mcp230xx::pinPullUpMode(int pin, int value) {
 
     _errorFlag = false;
-    unsigned char txBuf[1];
-    unsigned char rxBuf[1];
+    unsigned char txValue;
+    unsigned char rxValue;
     int registerAddress;
 
     if (pin < 0 || pin > _pins - 1) {
@@ -779,24 +780,24 @@ int gnublin_module_mcp230xx::pinPullUpMode(int pin, int value) {
 
     if (pin >= 0 && pin <= 7) {  /* Port A */
         registerAddress = GPPUA >> _registerShift;
-        txBuf[0] = 1 << pin;
+        txValue = 1 << pin;
     }
     else if (pin >= 8 && pin <= 15) {  /* Port B */
         registerAddress = GPPUB;
-        txBuf[0] = 1 << (pin - 8);
+        txValue = 1 << (pin - 8);
     }
     else {
         return -1;
     }
 
     /* Read the current state. */
-    if (_i2c.receive(registerAddress, rxBuf, 1) > 0) {
+    if (_i2c.receive(registerAddress, &rxValue, 1) > 0) {
             
         if (value == 0) {
-            txBuf[0] = rxBuf[0] & ~txBuf[0];
+            txValue = rxValue & ~txValue;
         }
         else if (value == 1) {
-            txBuf[0] = rxBuf[0] | txBuf[0];
+            txValue = rxValue | txValue;
         }
         else {
             _errorFlag = true;
@@ -804,7 +805,7 @@ int gnublin_module_mcp230xx::pinPullUpMode(int pin, int value) {
             return -1;
         }
         
-        if (_i2c.send(registerAddress, txBuf, 1) > 0) {
+        if (_i2c.send(registerAddress, &txValue, 1) > 0) {
             return 1;
         }
         else {
@@ -838,7 +839,7 @@ int gnublin_module_mcp230xx::pinPullUpMode(int pin, int value) {
 int gnublin_module_mcp230xx::portPullUpMode(int port, int value) {
 
     _errorFlag = false;
-    unsigned char txBuf[1];
+    unsigned char txValue;
     int registerAddress;
 
     if (port < 0 || port > _ports - 1) {
@@ -858,10 +859,10 @@ int gnublin_module_mcp230xx::portPullUpMode(int port, int value) {
     }
 
     if (value == 0) {
-        txBuf[0] = 0x00;
+        txValue = 0x00;
     }
     else if (value == 1) {
-        txBuf[0] = 0xff;
+        txValue = 0xff;
     }
     else {
         _errorFlag = true;
@@ -869,7 +870,7 @@ int gnublin_module_mcp230xx::portPullUpMode(int port, int value) {
         return -1;
     }
 
-    if (_i2c.send(registerAddress, txBuf, 1) > 0) {
+    if (_i2c.send(registerAddress, &txValue, 1) > 0) {
         return 1;
     }
     else {
@@ -896,8 +897,8 @@ int gnublin_module_mcp230xx::portPullUpMode(int port, int value) {
 int gnublin_module_mcp230xx::pinPolarityMode(int pin, int value) {
 
     _errorFlag = false;
-    unsigned char txBuf[1];
-    unsigned char rxBuf[1];
+    unsigned char txValue;
+    unsigned char rxValue;
     int registerAddress;
 
     if (pin < 0 || pin > _pins - 1) {
@@ -908,24 +909,24 @@ int gnublin_module_mcp230xx::pinPolarityMode(int pin, int value) {
 
     if (pin >= 0 && pin <= 7) {  /* Port A */
         registerAddress = IPOLA >> _registerShift;
-        txBuf[0] = 1 << pin;
+        txValue = 1 << pin;
     }
     else if (pin >= 8 && pin <= 15) {  /* Port B */
         registerAddress = IPOLB;
-        txBuf[0] = 1 << (pin - 8);
+        txValue = 1 << (pin - 8);
     }
     else {
         return -1;
     }
 
     /* Read the current state. */
-    if (_i2c.receive(registerAddress, rxBuf, 1) > 0) {
+    if (_i2c.receive(registerAddress, &rxValue, 1) > 0) {
             
         if (value == 0) {
-            txBuf[0] = rxBuf[0] & ~txBuf[0];
+            txValue = rxValue & ~txValue;
         }
         else if (value == 1) {
-            txBuf[0] = rxBuf[0] | txBuf[0];
+            txValue = rxValue | txValue;
         }
         else {
             _errorFlag = true;
@@ -933,7 +934,7 @@ int gnublin_module_mcp230xx::pinPolarityMode(int pin, int value) {
             return -1;
         }
         
-        if (_i2c.send(registerAddress, txBuf, 1) > 0) {
+        if (_i2c.send(registerAddress, &txValue, 1) > 0) {
             return 1;
         }
         else {
@@ -968,7 +969,7 @@ int gnublin_module_mcp230xx::pinPolarityMode(int pin, int value) {
 int gnublin_module_mcp230xx::portPolarityMode(int port, int value) {
 
     _errorFlag = false;
-    unsigned char txBuf[1];
+    unsigned char txValue;
     int registerAddress;
 
     if (port < 0 || port > _ports - 1) {
@@ -988,10 +989,10 @@ int gnublin_module_mcp230xx::portPolarityMode(int port, int value) {
     }
 
     if (value == 0) {
-        txBuf[0] = 0x00;
+        txValue = 0x00;
     }
     else if (value == 1) {
-        txBuf[0] = 0xff;
+        txValue = 0xff;
     }
     else {
         _errorFlag = true;
@@ -999,7 +1000,7 @@ int gnublin_module_mcp230xx::portPolarityMode(int port, int value) {
         return -1;
     }
 
-    if (_i2c.send(registerAddress, txBuf, 1) > 0) {
+    if (_i2c.send(registerAddress, &txValue, 1) > 0) {
         return 1;
     }
     else {
@@ -1025,7 +1026,7 @@ int gnublin_module_mcp230xx::portPolarityMode(int port, int value) {
 int gnublin_module_mcp230xx::digitalIntRead(int pin) {
 
     _errorFlag = false;
-    unsigned char rxBuf[1];
+    unsigned char rxValue;
     int port;
     int registerAddress;
     int shift;
@@ -1060,14 +1061,14 @@ int gnublin_module_mcp230xx::digitalIntRead(int pin) {
         return -1;
     }
 
-    if (_i2c.receive(registerAddress, rxBuf, 1) > 0) {
-        rxBuf[0] <<= shift;  /* MSB is now the pin we want to read from. */
-        rxBuf[0] &= 128;     /* Set all bits to 0 except the MSB. */
+    if (_i2c.receive(registerAddress, &rxValue, 1) > 0) {
+        rxValue <<= shift;  /* MSB is now the pin we want to read from. */
+        rxValue &= 128;     /* Set all bits to 0 except the MSB. */
 
-        if (rxBuf[0] == 0) {
+        if (rxValue == 0) {
             return 0;
         }
-        else if (rxBuf[0] == 128) {
+        else if (rxValue == 128) {
             return 1;
         }
         else {
@@ -1099,7 +1100,7 @@ int gnublin_module_mcp230xx::digitalIntRead(int pin) {
 unsigned char gnublin_module_mcp230xx::readIntPort(int port) {
 
     _errorFlag = false;
-    unsigned char rxBuf[1];
+    unsigned char rxValue;
     int registerAddress;
 
     if (port < 0 || port > _ports - 1) {
@@ -1128,8 +1129,8 @@ unsigned char gnublin_module_mcp230xx::readIntPort(int port) {
         return -1;
     }
 
-    if (_i2c.receive(registerAddress, rxBuf, 1) > 0) {
-        return rxBuf[0];
+    if (_i2c.receive(registerAddress, &rxValue, 1) > 0) {
+        return rxValue;
     }
     else {
         _errorFlag = true;
@@ -1154,7 +1155,7 @@ unsigned char gnublin_module_mcp230xx::readIntPort(int port) {
 unsigned char gnublin_module_mcp230xx::readIntFlagPort(int port) {
 
     _errorFlag = false;
-    unsigned char rxBuf[1];
+    unsigned char rxValue;
     int registerAddress;
 
     if (port < 0 || port > _ports - 1) {
@@ -1173,8 +1174,8 @@ unsigned char gnublin_module_mcp230xx::readIntFlagPort(int port) {
         return -1;
     }
 
-    if (_i2c.receive(registerAddress, rxBuf, 1) > 0) {
-        return rxBuf[0];
+    if (_i2c.receive(registerAddress, &rxValue, 1) > 0) {
+        return rxValue;
     }
     else {
         _errorFlag = true;

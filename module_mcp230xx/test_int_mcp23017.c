@@ -6,9 +6,9 @@
  * Maintainer   : Christophe Burki
  * Created      : Sun Apr 27 16:00:55 2014
  * Version      : 1.0.0
- * Last-Updated : Sun Jun 22 11:43:56 2014 (7200 CEST)
+ * Last-Updated : Thu Sep 11 11:16:06 2014 (7200 CEST)
  *           By : Christophe Burki
- *     Update # : 248
+ *     Update # : 249
  * URL          : 
  * Keywords     : 
  * Compatibility: 
@@ -149,8 +149,7 @@ int main(void) {
         }
 
         if (fdset[1].revents && POLLPRI) {
-            unsigned char readBuffer[64];
-            int bytesRead = read(fdset[1].fd, readBuffer, 64);
+            read(fdset[1].fd, NULL, 1);
             int intCount = mcp23017.pollInt();
         }
     }

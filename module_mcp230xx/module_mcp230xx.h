@@ -6,9 +6,9 @@
  * Maintainer   : Christophe Burki
  * Created      : Sun Apr 27 15:27:32 2014
  * Version      : 1.0.0
- * Last-Updated : Sat Aug 30 19:18:33 2014 (7200 CEST)
+ * Last-Updated : Mon Sep 15 21:17:59 2014 (7200 CEST)
  *           By : Christophe Burki
- *     Update # : 13
+ *     Update # : 17
  * URL          : 
  * Keywords     : 
  * Compatibility: 
@@ -73,7 +73,7 @@
  */
 class gnublin_module_mcp230xx {
 
- protected :
+  protected :
     gnublin_i2c _i2c;
     bool _errorFlag;
     std::string _errorMessage;
@@ -87,7 +87,7 @@ class gnublin_module_mcp230xx {
     void (*_portIsr[MAX_PORTS])(int, int);
 
  public :
-    gnublin_module_mcp230xx(int ports, int pins);
+    gnublin_module_mcp230xx(int ports, int pins, int address = 0x20, std::string filename = "/dev/i2c-1");
     int init(unsigned char value);
     const char* getErrorMessage(void);
     bool fail(void);
