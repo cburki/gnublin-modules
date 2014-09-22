@@ -6,9 +6,9 @@
 ## Maintainer   : Christophe Burki 
 ## Created      : Fri Jun 13 19:48:42 2014
 ## Version      : 1.0.0
-## Last-Updated : Sun Aug 31 20:19:39 2014 (7200 CEST)
+## Last-Updated : Mon Sep 22 11:02:01 2014 (7200 CEST)
 ##           By : Christophe Burki
-##     Update # : 40
+##     Update # : 44
 ## URL          : 
 ## Keywords     : 
 ## Compatibility: 
@@ -46,7 +46,7 @@
 
 include Config.mk
 
-MODULES := module_mcp230xx module_sc16is7x0 module_hd44780
+MODULES := module_mcp230xx module_sc16is7x0 module_hd44780 module_sht2x
 
 all: ; $(foreach module,$(MODULES),(cd $(module); make) &&):
 
