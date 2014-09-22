@@ -1,0 +1,6 @@
+# local_path                    target_path                                                             owner           mode
+
+test_sht2x                      /home/cburki/test_sht2x                                                 cburki:cburki   0755
+
+gnublin_module_sht2x.py         /usr/local/lib/python2.7/dist-packages/gnublin_module_sht2x.py          root:staff      0644
+_gnublin_module_sht2x.so        /usr/local/lib/python2.7/dist-packages/_gnublin_module_sht2x.so         root:staff      0755
