@@ -6,9 +6,9 @@
  * Maintainer   : Christophe Burki
  * Created      : Sun May  4 14:30:36 2014
  * Version      : 1.0.0
- * Last-Updated : Sun Sep 14 16:41:32 2014 (7200 CEST)
+ * Last-Updated : Sat Sep 20 17:24:16 2014 (7200 CEST)
  *           By : Christophe Burki
- *     Update # : 72
+ *     Update # : 78
  * URL          : 
  * Keywords     : 
  * Compatibility: 
@@ -66,8 +66,12 @@ int main(void) {
         printf("error)%s\n", lcd.getErrorMessage());
     }
 
-    sleep(2);
-    lcd.print((char *)"BURKIONLINE.NET");
+    lcd.print((char *)"abcdefghijklmnop");
+    if (lcd.fail()) {
+        printf("error)%s\n", lcd.getErrorMessage());
+    }
+
+    lcd.print((char *)"qrstuvwxyz012345", 2);
     if (lcd.fail()) {
         printf("error)%s\n", lcd.getErrorMessage());
     }
@@ -76,11 +80,6 @@ int main(void) {
     lcd.controlDisplay(0, 1, 1);
     sleep(2);
     lcd.controlDisplay(1, 1, 1);
-
-    lcd.print((char *)"Hello Word !", 2, 2);
-    if (lcd.fail()) {
-        printf("error)%s\n", lcd.getErrorMessage());
-    }
 
     sleep(2);
     lcd.returnHome();
