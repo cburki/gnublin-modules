@@ -1,10 +1,12 @@
 module_mcp230xx/test_mcp23017
 module_mcp230xx/test_int_mcp23017
-module_sc16is7x0/test_sc16is750
+module_sc16is7x0/test_sc16is750_gpio
+module_sc16is7x0/test_sc16is750_uart
 module_hd44780/test_hd44780
 module_hd44780/test_atmega328p
 module_hd44780/test_atmega328p/atmega/.dep
 module_hd44780/test_atmega328p/atmega/.lib
+module_sht2x/test_sht2x
 
 *~
 *.o
