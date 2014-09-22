@@ -6,9 +6,9 @@
 // Maintainer   : Christophe Burki
 // Created      : Sun May  4 11:24:24 2014
 // Version      : 1.1.0
-// Last-Updated : Sun Sep 14 16:49:07 2014 (7200 CEST)
+// Last-Updated : Sat Sep 20 17:21:28 2014 (7200 CEST)
 //           By : Christophe Burki
-//     Update # : 373
+//     Update # : 391
 // URL          : 
 // Keywords     : 
 // Compatibility: 
@@ -328,7 +328,7 @@ int gnublin_hd44780_driver_74hc595::writeByte(unsigned char byte, int mode) {
     shiftByte(value);
     latchByte();
     usleep(LCD_PULSE);
-    value = 0x00;
+    value = 0x00 | (mode << _rs);
     shiftByte(value);
     latchByte();
     usleep(LCD_DELAY);
@@ -354,7 +354,7 @@ int gnublin_hd44780_driver_74hc595::writeByte(unsigned char byte, int mode) {
     shiftByte(value);
     latchByte();
     usleep(LCD_PULSE);
-    value = 0x00;
+    value = 0x00 | (mode << _rs);
     shiftByte(value);
     latchByte();
     usleep(LCD_DELAY);
@@ -724,8 +724,8 @@ int gnublin_module_hd44780::_print(char *buffer) {
 
     _errorFlag = false;
     int length = strlen(buffer);
-    if (length > _cols - _crtCol) {
-        length = _cols - _crtCol;
+    if (length > _cols - _crtCol + 1) {
+        length = _cols - _crtCol + 1;
     }
 
     for (int i = 0; i < length; i++) {
