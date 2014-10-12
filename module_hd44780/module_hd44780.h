@@ -6,9 +6,9 @@
  * Maintainer   : Christophe Burki
  * Created      : Sat May  3 18:21:57 2014
  * Version      : 1.2.0
- * Last-Updated : Wed Sep 17 13:12:14 2014 (7200 CEST)
+ * Last-Updated : Sun Oct 12 15:05:05 2014 (7200 CEST)
  *           By : Christophe Burki
- *     Update # : 110
+ *     Update # : 111
  * URL          : 
  * Keywords     : 
  * Compatibility: 
@@ -65,12 +65,12 @@
 class gnublin_hd44780_driver {
 
  protected :
-    int _rs;
-    int _en;
-    int _d4;
-    int _d5;
-    int _d6;
-    int _d7;
+    int rs;
+    int en;
+    int d4;
+    int d5;
+    int d6;
+    int d7;
 
  public :
     gnublin_hd44780_driver(int rs, int en, int d4, int d5, int d6, int d7);
@@ -89,7 +89,7 @@ class gnublin_hd44780_driver {
 class gnublin_hd44780_driver_gpio : public gnublin_hd44780_driver {
 
  private :
-    gnublin_gpio _gpio;
+    gnublin_gpio gpio;
 
  public :
     gnublin_hd44780_driver_gpio(int rs, int en, int d4, int d5, int d6, int d7);
@@ -108,10 +108,10 @@ class gnublin_hd44780_driver_gpio : public gnublin_hd44780_driver {
 class gnublin_hd44780_driver_74hc595 : public gnublin_hd44780_driver {
 
  private :
-    gnublin_gpio _gpio;
-    int _ds;
-    int _shcp;
-    int _stcp;
+    gnublin_gpio gpio;
+    int ds;
+    int shcp;
+    int stcp;
 
     void shiftByte(unsigned char value, int msbFirst = 1);
     void latchByte(void);
@@ -133,7 +133,7 @@ class gnublin_hd44780_driver_74hc595 : public gnublin_hd44780_driver {
 class gnublin_hd44780_driver_mcp23017 : public gnublin_hd44780_driver {
 
  private :
-    gnublin_module_mcp23017 _mcp23017;
+    gnublin_module_mcp23017 mcp23017;
 
  public :
     gnublin_hd44780_driver_mcp23017(int rs, int en, int d4, int d5, int d6, int d7, int i2cAddress = 0x20, std::string i2cFilename = "/dev/i2c-1");
@@ -154,7 +154,7 @@ class gnublin_hd44780_driver_mcp23017 : public gnublin_hd44780_driver {
 class gnublin_hd44780_driver_sc16is750 : public gnublin_hd44780_driver {
 
  private :
-    gnublin_module_sc16is750 _sc16is750;
+    gnublin_module_sc16is750 sc16is750;
 
  public :
     gnublin_hd44780_driver_sc16is750(int rs, int en, int d4, int d5, int d6, int d7, int i2cAddress = 0x20, std::string i2cFilename = "/dev/i2c-1");
@@ -174,16 +174,16 @@ class gnublin_hd44780_driver_sc16is750 : public gnublin_hd44780_driver {
 class gnublin_module_hd44780 {
     
  private :
-    int _rows;
-    int _cols;
-    int _crtCol;
-    gnublin_hd44780_driver *_driver;
-    bool _errorFlag;
-    std::string _errorMessage;
+    int rows;
+    int cols;
+    int crtCol;
+    gnublin_hd44780_driver *driver;
+    bool errorFlag;
+    std::string errorMessage;
 
-    int _setRow(int row);
-    int _setCol(int col);
-    int _print(char *buffer);
+    int setRow(int row);
+    int setCol(int col);
+    int write(char *buffer);
 
  public :
     gnublin_module_hd44780(gnublin_hd44780_driver *driver);

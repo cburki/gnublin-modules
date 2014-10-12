@@ -6,9 +6,9 @@
 // Maintainer   : Christophe Burki
 // Created      : Sun Apr 27 15:39:20 2014
 // Version      : 1.0.0
-// Last-Updated : Thu Sep 11 11:13:04 2014 (7200 CEST)
+// Last-Updated : Sun Oct 12 15:51:14 2014 (7200 CEST)
 //           By : Christophe Burki
-//     Update # : 41
+//     Update # : 51
 // URL          : 
 // Keywords     : 
 // Compatibility: 
@@ -93,24 +93,24 @@
  */
 gnublin_module_mcp230xx::gnublin_module_mcp230xx(int ports, int pins, int address, std::string filename) {
 
-    _errorFlag = false;
-    _ports = ports;
-    _pins = pins;
-    _registerShift = 0;
-    if (_ports == 1) {
-        _registerShift = 1;
+    errorFlag = false;
+    this->ports = ports;
+    this->pins = pins;
+    registerShift = 0;
+    if (this->ports == 1) {
+        registerShift = 1;
     }
 
     setAddress(address);
     setDevicefile(filename);
     init(CONF_SEQOP);
 
-    _isr = NULL;
+    isr = NULL;
     for (int i = 0; i < MAX_PINS; i++) {
-        _pinIsr[i] = NULL;
+        pinIsr[i] = NULL;
     }
     for (int i = 0; i < MAX_PORTS; i++) {
-        _portIsr[i] = NULL;
+        portIsr[i] = NULL;
     }
 }
 
@@ -126,17 +126,17 @@ int gnublin_module_mcp230xx::init(unsigned char value) {
 
     value |= CONF_SEQOP;  /* Always enable seq mode. */
 
-    if (_i2c.send(IOCON >> _registerShift, &value, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.send Error\n";
+    if (i2c.send(IOCON >> registerShift, &value, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.send Error\n";
         return -1;
     }
 
     /* Disable interrupts on both ports. */
     if ((portIntMode(0, INT_NONE) < 0)
         || (portIntMode(1, INT_NONE) < 0)) {
-        _errorFlag = true;
-        _errorMessage = "disable interrupts Error\n";
+        errorFlag = true;
+        errorMessage = "disable interrupts Error\n";
         return -1;
     }
 
@@ -152,7 +152,7 @@ int gnublin_module_mcp230xx::init(unsigned char value) {
  */
 const char* gnublin_module_mcp230xx::getErrorMessage(void) {
 
-    return _errorMessage.c_str();
+    return errorMessage.c_str();
 }
 
 
@@ -164,7 +164,7 @@ const char* gnublin_module_mcp230xx::getErrorMessage(void) {
  */
 bool gnublin_module_mcp230xx::fail(void) {
 
-    return _errorFlag;
+    return errorFlag;
 }
 
 
@@ -176,7 +176,7 @@ bool gnublin_module_mcp230xx::fail(void) {
  */
 void gnublin_module_mcp230xx::setAddress(int address) {
 
-    _i2c.setAddress(address);
+    i2c.setAddress(address);
 }
 
 
@@ -188,7 +188,7 @@ void gnublin_module_mcp230xx::setAddress(int address) {
  */
 void gnublin_module_mcp230xx::setDevicefile(std::string filename) {
 
-    _i2c.setDevicefile(filename);
+    i2c.setDevicefile(filename);
 }
 
 
@@ -202,19 +202,19 @@ void gnublin_module_mcp230xx::setDevicefile(std::string filename) {
  */
 int gnublin_module_mcp230xx::pinMode(int pin, std::string direction) {
 
-    _errorFlag = false;
+    errorFlag = false;
     unsigned char txValue;
     unsigned char rxValue;
     int registerAddress;
 
-    if (pin < 0 || pin > _pins - 1) {
-        _errorFlag = true;
-        sprintf(const_cast<char*>(_errorMessage.c_str()), "Pin number is not between 0 and %d\n", _pins - 1);
+    if (pin < 0 || pin > pins - 1) {
+        errorFlag = true;
+        sprintf(const_cast<char*>(errorMessage.c_str()), "Pin number is not between 0 and %d\n", pins - 1);
         return -1;
     }
 
     if (pin >= 0 && pin <= 7) {  /* Port A */
-        registerAddress = IODIRA  >> _registerShift;
+        registerAddress = IODIRA  >> registerShift;
         txValue = 1 << pin;
     }
     else if (pin >= 8 && pin <= 15) {  /* Port B */
@@ -226,7 +226,7 @@ int gnublin_module_mcp230xx::pinMode(int pin, std::string direction) {
     }
 
     /* Read the current state. */
-    if (_i2c.receive(registerAddress, &rxValue, 1) > 0) {
+    if (i2c.receive(registerAddress, &rxValue, 1) > 0) {
             
         if (direction == OUTPUT) {
             txValue = rxValue & ~txValue;
@@ -235,29 +235,29 @@ int gnublin_module_mcp230xx::pinMode(int pin, std::string direction) {
             txValue = rxValue | txValue;
         }
         else {
-            _errorFlag = true;
-            _errorMessage = "direction != in/out\n";
+            errorFlag = true;
+            errorMessage = "direction != in/out\n";
             return -1;
         }
         
-        if (_i2c.send(registerAddress, &txValue, 1) > 0) {
+        if (i2c.send(registerAddress, &txValue, 1) > 0) {
             return 1;
         }
         else {
-            _errorFlag = true;
-            _errorMessage = "i2c.send Error\n";
+            errorFlag = true;
+            errorMessage = "i2c.send Error\n";
             return -1;
         }
     }
     
     else {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive Error\n";
+        errorFlag = true;
+        errorMessage = "i2c.receive Error\n";
         return -1;
     }
 
-    _errorFlag = true;
-    _errorMessage = "Unknown error\n";
+    errorFlag = true;
+    errorMessage = "Unknown error\n";
     return -1;
 }
 
@@ -273,18 +273,18 @@ int gnublin_module_mcp230xx::pinMode(int pin, std::string direction) {
  */
 int gnublin_module_mcp230xx::portMode(int port, std::string direction) {
 
-    _errorFlag = false;
+    errorFlag = false;
     unsigned char txValue;
     int registerAddress;
 
-    if (port < 0 || port > _ports - 1) {
-        _errorFlag = true;
-        sprintf(const_cast<char*>(_errorMessage.c_str()), "Port number is not between 0 and %d\n", _ports - 1);
+    if (port < 0 || port > ports - 1) {
+        errorFlag = true;
+        sprintf(const_cast<char*>(errorMessage.c_str()), "Port number is not between 0 and %d\n", ports - 1);
         return -1;
     }
 
     if (port == GPA) {  /* Port A */
-        registerAddress = IODIRA >> _registerShift;
+        registerAddress = IODIRA >> registerShift;
     }
     else if (port == GPB) {  /* Port B */
         registerAddress = IODIRB;
@@ -300,22 +300,22 @@ int gnublin_module_mcp230xx::portMode(int port, std::string direction) {
         txValue = 0xff;
     }
     else {
-        _errorFlag = true;
-        _errorMessage = "direction != in/out\n";
+        errorFlag = true;
+        errorMessage = "direction != in/out\n";
         return -1;
     }
     
-    if (_i2c.send(registerAddress, &txValue, 1) > 0) {
+    if (i2c.send(registerAddress, &txValue, 1) > 0) {
         return 1;
     }
     else {
-        _errorFlag = true;
-        _errorMessage = "i2c.send Error\n";
+        errorFlag = true;
+        errorMessage = "i2c.send Error\n";
         return -1;
     }
 
-    _errorFlag = true;
-    _errorMessage = "Unknown error\n";
+    errorFlag = true;
+    errorMessage = "Unknown error\n";
     return -1;
 }
 
@@ -330,19 +330,19 @@ int gnublin_module_mcp230xx::portMode(int port, std::string direction) {
  */
 int gnublin_module_mcp230xx::digitalWrite(int pin, int value) {
 
-    _errorFlag = false;
+    errorFlag = false;
     unsigned char txValue;
     unsigned char rxValue;
     int registerAddress;
 
-    if (pin < 0 || pin > _pins - 1) {
-        _errorFlag = true;
-        sprintf(const_cast<char*>(_errorMessage.c_str()), "Pin number is not between 0 and %d\n", _pins - 1);
+    if (pin < 0 || pin > pins - 1) {
+        errorFlag = true;
+        sprintf(const_cast<char*>(errorMessage.c_str()), "Pin number is not between 0 and %d\n", pins - 1);
         return -1;
     }
 
     if (pin >= 0 && pin <= 7) {  /* Port A */
-        registerAddress = OLATA >> _registerShift;
+        registerAddress = OLATA >> registerShift;
         txValue = 1 << pin;
     }
     else if (pin >= 8 && pin <= 15) {  /* Port B */
@@ -354,7 +354,7 @@ int gnublin_module_mcp230xx::digitalWrite(int pin, int value) {
     }
 
     /* Read the current state. */
-    if (_i2c.receive(registerAddress, &rxValue, 1) > 0) {
+    if (i2c.receive(registerAddress, &rxValue, 1) > 0) {
             
         if (value == 0) {
             txValue = rxValue & ~txValue;
@@ -363,29 +363,29 @@ int gnublin_module_mcp230xx::digitalWrite(int pin, int value) {
             txValue = rxValue | txValue;
         }
         else {
-            _errorFlag = true;
-            _errorMessage = "value != 0/1\n";
+            errorFlag = true;
+            errorMessage = "value != 0/1\n";
             return -1;
         }
         
-        if (_i2c.send(registerAddress, &txValue, 1) > 0) {
+        if (i2c.send(registerAddress, &txValue, 1) > 0) {
             return 1;
         }
         else {
-            _errorFlag = true;
-            _errorMessage = "i2c.send Error\n";
+            errorFlag = true;
+            errorMessage = "i2c.send Error\n";
             return -1;
         }
     }
     
     else {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive Error\n";
+        errorFlag = true;
+        errorMessage = "i2c.receive Error\n";
         return -1;
     }
 
-    _errorFlag = true;
-    _errorMessage = "Unknown error\n";
+    errorFlag = true;
+    errorMessage = "Unknown error\n";
     return -1;
 }
 
@@ -399,19 +399,19 @@ int gnublin_module_mcp230xx::digitalWrite(int pin, int value) {
  */
 int gnublin_module_mcp230xx::digitalRead(int pin) {
 
-    _errorFlag = false;
+    errorFlag = false;
     unsigned char rxValue;
     int registerAddress;
     int shift;
 
-    if (pin < 0 || pin > _pins - 1) {
-        _errorFlag = true;
-        sprintf(const_cast<char*>(_errorMessage.c_str()), "Pin number is not between 0 and %d\n", _pins - 1);
+    if (pin < 0 || pin > pins - 1) {
+        errorFlag = true;
+        sprintf(const_cast<char*>(errorMessage.c_str()), "Pin number is not between 0 and %d\n", pins - 1);
         return -1;
     }
 
     if (pin >= 0 && pin <= 7) {  /* Port A */
-        registerAddress = GPIOA >> _registerShift;
+        registerAddress = GPIOA >> registerShift;
         shift = 7 - pin;
     }
     else if (pin >= 8 && pin <= 15) {  /* Port B */
@@ -422,7 +422,7 @@ int gnublin_module_mcp230xx::digitalRead(int pin) {
         return -1;
     }
 
-    if (_i2c.receive(registerAddress, &rxValue, 1) > 0) {
+    if (i2c.receive(registerAddress, &rxValue, 1) > 0) {
         rxValue <<= shift;  /* MSB is now the pin we want to read from. */
         rxValue &= 128;     /* Set all bits to 0 except the MSB. */
 
@@ -433,19 +433,19 @@ int gnublin_module_mcp230xx::digitalRead(int pin) {
             return 1;
         }
         else {
-            _errorFlag = true;
-            _errorMessage = "bitshift failed\n";
+            errorFlag = true;
+            errorMessage = "bitshift failed\n";
             return -1;
         }
     }
     else {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive Error\n";
+        errorFlag = true;
+        errorMessage = "i2c.receive Error\n";
         return -1;
     }
 
-    _errorFlag = true;
-    _errorMessage = "Unknown error\n";
+    errorFlag = true;
+    errorMessage = "Unknown error\n";
     return -1;
 }
 
@@ -473,17 +473,17 @@ int gnublin_module_mcp230xx::readState(int pin) {
  */
 int gnublin_module_mcp230xx::writePort(int port, unsigned char value) {
 
-    _errorFlag = false;
+    errorFlag = false;
     int registerAddress;
 
-    if (port < 0 || port > _ports - 1) {
-        _errorFlag = true;
-        sprintf(const_cast<char*>(_errorMessage.c_str()), "Port number is not between 0 and %d\n", _ports - 1);
+    if (port < 0 || port > ports - 1) {
+        errorFlag = true;
+        sprintf(const_cast<char*>(errorMessage.c_str()), "Port number is not between 0 and %d\n", ports - 1);
         return -1;
     }
 
     if (port == GPA) {  /* Port A */
-        registerAddress = OLATA >> _registerShift;
+        registerAddress = OLATA >> registerShift;
     }
     else if (port == GPB) {  /* Port B */
         registerAddress = OLATB;
@@ -492,17 +492,17 @@ int gnublin_module_mcp230xx::writePort(int port, unsigned char value) {
         return -1;
     }
 
-    if (_i2c.send(registerAddress, &value, 1) > 0) {
+    if (i2c.send(registerAddress, &value, 1) > 0) {
         return 1;
     }
     else {
-        _errorFlag = true;
-        _errorMessage = "i2c.send Error\n";
+        errorFlag = true;
+        errorMessage = "i2c.send Error\n";
         return -1;
     }
 
-    _errorFlag = true;
-    _errorMessage = "Unknown error\n";
+    errorFlag = true;
+    errorMessage = "Unknown error\n";
     return -1;
 }
 
@@ -516,18 +516,18 @@ int gnublin_module_mcp230xx::writePort(int port, unsigned char value) {
  */
 unsigned char gnublin_module_mcp230xx::readPort(int port) {
 
-    _errorFlag = false;
+    errorFlag = false;
     unsigned char rxValue;
     int registerAddress;
 
-    if (port < 0 || port > _ports - 1) {
-        _errorFlag = true;
-        sprintf(const_cast<char*>(_errorMessage.c_str()), "Port number is not between 0 and %d\n", _ports - 1);
+    if (port < 0 || port > ports - 1) {
+        errorFlag = true;
+        sprintf(const_cast<char*>(errorMessage.c_str()), "Port number is not between 0 and %d\n", ports - 1);
         return -1;
     }
 
     if (port == GPA) {  /* Port A */
-        registerAddress = GPIOA >> _registerShift;
+        registerAddress = GPIOA >> registerShift;
     }
     else if (port == GPB) {  /* Port B */
         registerAddress = GPIOB;
@@ -536,17 +536,17 @@ unsigned char gnublin_module_mcp230xx::readPort(int port) {
         return -1;
     }
 
-    if (_i2c.receive(registerAddress, &rxValue, 1) > 0) {
+    if (i2c.receive(registerAddress, &rxValue, 1) > 0) {
         return rxValue;
     }
     else {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive Error";
+        errorFlag = true;
+        errorMessage = "i2c.receive Error";
         return -1;
     }
 
-    _errorFlag = true;
-    _errorMessage = "Unknown error\n";
+    errorFlag = true;
+    errorMessage = "Unknown error\n";
     return -1;
 }
 
@@ -561,7 +561,7 @@ unsigned char gnublin_module_mcp230xx::readPort(int port) {
  */
 int gnublin_module_mcp230xx::pinIntMode(int pin, std::string mode) {
 
-    _errorFlag = false;
+    errorFlag = false;
     unsigned char rxIntEn;
     unsigned char rxDefVal;
     unsigned char rxIntCon;
@@ -572,16 +572,16 @@ int gnublin_module_mcp230xx::pinIntMode(int pin, std::string mode) {
     int registerDefVal;
     int registerIntCon;
 
-    if (pin < 0 || pin > _pins - 1) {
-        _errorFlag = true;
-        sprintf(const_cast<char*>(_errorMessage.c_str()), "Pin number is not between 0 and %d\n", _pins - 1);
+    if (pin < 0 || pin > pins - 1) {
+        errorFlag = true;
+        sprintf(const_cast<char*>(errorMessage.c_str()), "Pin number is not between 0 and %d\n", pins - 1);
         return -1;
     }
 
     if (pin >= 0 && pin <= 7) {  /* Port A */
-        registerIntEn = GPINTENA >> _registerShift;
-        registerDefVal = DEFVALA >> _registerShift;
-        registerIntCon = INTCONA >> _registerShift;
+        registerIntEn = GPINTENA >> registerShift;
+        registerDefVal = DEFVALA >> registerShift;
+        registerIntCon = INTCONA >> registerShift;
         txIntEn = 1 << pin;
         txDefVal = 1 << pin;
         txIntCon = 1 << pin;
@@ -599,21 +599,21 @@ int gnublin_module_mcp230xx::pinIntMode(int pin, std::string mode) {
     }
 
     /* Read the current states. */
-    if (_i2c.receive(registerDefVal, &rxDefVal, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive Error\n";
+    if (i2c.receive(registerDefVal, &rxDefVal, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.receive Error\n";
         return -1;
     }
 
-    if (_i2c.receive(registerIntCon, &rxIntCon, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive Error\n";
+    if (i2c.receive(registerIntCon, &rxIntCon, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.receive Error\n";
         return -1;
     }
 
-    if (_i2c.receive(registerIntEn, &rxIntEn, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive Error\n";
+    if (i2c.receive(registerIntEn, &rxIntEn, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.receive Error\n";
         return -1;
     }
 
@@ -638,26 +638,26 @@ int gnublin_module_mcp230xx::pinIntMode(int pin, std::string mode) {
         txIntEn = rxIntEn & ~txIntEn;
     }
     else {
-        _errorFlag = true;
-        _errorMessage = "mode != change/high/low/none\n";
+        errorFlag = true;
+        errorMessage = "mode != change/high/low/none\n";
         return -1;
     }
 
-    if (_i2c.send(registerDefVal, &txDefVal, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.send Error\n";
+    if (i2c.send(registerDefVal, &txDefVal, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.send Error\n";
         return -1;
     }
 
-    if (_i2c.send(registerIntCon, &txIntCon, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.send Error\n";
+    if (i2c.send(registerIntCon, &txIntCon, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.send Error\n";
         return -1;
     }
 
-    if (_i2c.send(registerIntEn, &txIntEn, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.send Error\n";
+    if (i2c.send(registerIntEn, &txIntEn, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.send Error\n";
         return -1;
     }
 
@@ -675,7 +675,7 @@ int gnublin_module_mcp230xx::pinIntMode(int pin, std::string mode) {
  */
 int gnublin_module_mcp230xx::portIntMode(int port, std::string mode) {
 
-    _errorFlag = false;
+    errorFlag = false;
     unsigned char txIntEn;
     unsigned char txDefVal;
     unsigned char txIntCon;
@@ -683,16 +683,16 @@ int gnublin_module_mcp230xx::portIntMode(int port, std::string mode) {
     int registerDefVal;
     int registerIntCon;
 
-    if (port < 0 || port > _ports - 1) {
-        _errorFlag = true;
-        sprintf(const_cast<char*>(_errorMessage.c_str()), "Port number is not between 0 and %d\n", _ports - 1);
+    if (port < 0 || port > ports - 1) {
+        errorFlag = true;
+        sprintf(const_cast<char*>(errorMessage.c_str()), "Port number is not between 0 and %d\n", ports - 1);
         return -1;
     }
 
     if (port == GPA) {  /* Port A */
-        registerIntEn = GPINTENA >> _registerShift;
-        registerDefVal = DEFVALA >> _registerShift;
-        registerIntCon = INTCONA >> _registerShift;
+        registerIntEn = GPINTENA >> registerShift;
+        registerDefVal = DEFVALA >> registerShift;
+        registerIntCon = INTCONA >> registerShift;
     }
     else if (port == GPB) {  /* Port B */
         registerIntEn = GPINTENB;
@@ -724,32 +724,32 @@ int gnublin_module_mcp230xx::portIntMode(int port, std::string mode) {
         txIntEn = 0x00;
     }
     else {
-        _errorFlag = true;
-        _errorMessage = "mode != change/high/low/none\n";
+        errorFlag = true;
+        errorMessage = "mode != change/high/low/none\n";
         return -1;
     }
 
-    if (_i2c.send(registerDefVal, &txDefVal, 1) > 0) {
+    if (i2c.send(registerDefVal, &txDefVal, 1) > 0) {
     }
     else {
-        _errorFlag = true;
-        _errorMessage = "i2c.send Error\n";
+        errorFlag = true;
+        errorMessage = "i2c.send Error\n";
         return -1;
     }
 
-    if (_i2c.send(registerIntCon, &txIntCon, 1) > 0) {
+    if (i2c.send(registerIntCon, &txIntCon, 1) > 0) {
     }
     else {
-        _errorFlag = true;
-        _errorMessage = "i2c.send Error\n";
+        errorFlag = true;
+        errorMessage = "i2c.send Error\n";
         return -1;
     }
 
-    if (_i2c.send(registerIntEn, &txIntEn, 1) > 0) {
+    if (i2c.send(registerIntEn, &txIntEn, 1) > 0) {
     }
     else {
-        _errorFlag = true;
-        _errorMessage = "i2c.send Error\n";
+        errorFlag = true;
+        errorMessage = "i2c.send Error\n";
         return -1;
     }
 
@@ -767,19 +767,19 @@ int gnublin_module_mcp230xx::portIntMode(int port, std::string mode) {
  */
 int gnublin_module_mcp230xx::pinPullUpMode(int pin, int value) {
 
-    _errorFlag = false;
+    errorFlag = false;
     unsigned char txValue;
     unsigned char rxValue;
     int registerAddress;
 
-    if (pin < 0 || pin > _pins - 1) {
-        _errorFlag = true;
-        sprintf(const_cast<char*>(_errorMessage.c_str()), "Pin number is not between 0 and %d\n", _pins - 1);
+    if (pin < 0 || pin > pins - 1) {
+        errorFlag = true;
+        sprintf(const_cast<char*>(errorMessage.c_str()), "Pin number is not between 0 and %d\n", pins - 1);
         return -1;
     }
 
     if (pin >= 0 && pin <= 7) {  /* Port A */
-        registerAddress = GPPUA >> _registerShift;
+        registerAddress = GPPUA >> registerShift;
         txValue = 1 << pin;
     }
     else if (pin >= 8 && pin <= 15) {  /* Port B */
@@ -791,7 +791,7 @@ int gnublin_module_mcp230xx::pinPullUpMode(int pin, int value) {
     }
 
     /* Read the current state. */
-    if (_i2c.receive(registerAddress, &rxValue, 1) > 0) {
+    if (i2c.receive(registerAddress, &rxValue, 1) > 0) {
             
         if (value == 0) {
             txValue = rxValue & ~txValue;
@@ -800,29 +800,29 @@ int gnublin_module_mcp230xx::pinPullUpMode(int pin, int value) {
             txValue = rxValue | txValue;
         }
         else {
-            _errorFlag = true;
-            _errorMessage = "value != 0/1\n";
+            errorFlag = true;
+            errorMessage = "value != 0/1\n";
             return -1;
         }
         
-        if (_i2c.send(registerAddress, &txValue, 1) > 0) {
+        if (i2c.send(registerAddress, &txValue, 1) > 0) {
             return 1;
         }
         else {
-            _errorFlag = true;
-            _errorMessage = "i2c.send Error\n";
+            errorFlag = true;
+            errorMessage = "i2c.send Error\n";
             return -1;
         }
     }
     
     else {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive Error\n";
+        errorFlag = true;
+        errorMessage = "i2c.receive Error\n";
         return -1;
     }
 
-    _errorFlag = true;
-    _errorMessage = "Unknown error\n";
+    errorFlag = true;
+    errorMessage = "Unknown error\n";
     return -1;
 }
 
@@ -838,18 +838,18 @@ int gnublin_module_mcp230xx::pinPullUpMode(int pin, int value) {
  */
 int gnublin_module_mcp230xx::portPullUpMode(int port, int value) {
 
-    _errorFlag = false;
+    errorFlag = false;
     unsigned char txValue;
     int registerAddress;
 
-    if (port < 0 || port > _ports - 1) {
-        _errorFlag = true;
-        sprintf(const_cast<char*>(_errorMessage.c_str()), "Port number is not between 0 and %d\n", _ports - 1);
+    if (port < 0 || port > ports - 1) {
+        errorFlag = true;
+        sprintf(const_cast<char*>(errorMessage.c_str()), "Port number is not between 0 and %d\n", ports - 1);
         return -1;
     }
 
     if (port == GPA) {  /* Port A */
-        registerAddress = GPPUA >> _registerShift;
+        registerAddress = GPPUA >> registerShift;
     }
     else if (port == GPB) {  /* Port B */
         registerAddress = GPPUB;
@@ -865,22 +865,22 @@ int gnublin_module_mcp230xx::portPullUpMode(int port, int value) {
         txValue = 0xff;
     }
     else {
-        _errorFlag = true;
-        _errorMessage = "value != 0/1\n";
+        errorFlag = true;
+        errorMessage = "value != 0/1\n";
         return -1;
     }
 
-    if (_i2c.send(registerAddress, &txValue, 1) > 0) {
+    if (i2c.send(registerAddress, &txValue, 1) > 0) {
         return 1;
     }
     else {
-        _errorFlag = true;
-        _errorMessage = "i2c.send Error\n";
+        errorFlag = true;
+        errorMessage = "i2c.send Error\n";
         return -1;
     }
 
-    _errorFlag = true;
-    _errorMessage = "Unknown error\n";
+    errorFlag = true;
+    errorMessage = "Unknown error\n";
     return -1;
 }
 
@@ -896,19 +896,19 @@ int gnublin_module_mcp230xx::portPullUpMode(int port, int value) {
  */
 int gnublin_module_mcp230xx::pinPolarityMode(int pin, int value) {
 
-    _errorFlag = false;
+    errorFlag = false;
     unsigned char txValue;
     unsigned char rxValue;
     int registerAddress;
 
-    if (pin < 0 || pin > _pins - 1) {
-        _errorFlag = true;
-        sprintf(const_cast<char*>(_errorMessage.c_str()), "Pin number is not between 0 and %d\n", _pins - 1);
+    if (pin < 0 || pin > pins - 1) {
+        errorFlag = true;
+        sprintf(const_cast<char*>(errorMessage.c_str()), "Pin number is not between 0 and %d\n", pins - 1);
         return -1;
     }
 
     if (pin >= 0 && pin <= 7) {  /* Port A */
-        registerAddress = IPOLA >> _registerShift;
+        registerAddress = IPOLA >> registerShift;
         txValue = 1 << pin;
     }
     else if (pin >= 8 && pin <= 15) {  /* Port B */
@@ -920,7 +920,7 @@ int gnublin_module_mcp230xx::pinPolarityMode(int pin, int value) {
     }
 
     /* Read the current state. */
-    if (_i2c.receive(registerAddress, &rxValue, 1) > 0) {
+    if (i2c.receive(registerAddress, &rxValue, 1) > 0) {
             
         if (value == 0) {
             txValue = rxValue & ~txValue;
@@ -929,29 +929,29 @@ int gnublin_module_mcp230xx::pinPolarityMode(int pin, int value) {
             txValue = rxValue | txValue;
         }
         else {
-            _errorFlag = true;
-            _errorMessage = "value != 0/1\n";
+            errorFlag = true;
+            errorMessage = "value != 0/1\n";
             return -1;
         }
         
-        if (_i2c.send(registerAddress, &txValue, 1) > 0) {
+        if (i2c.send(registerAddress, &txValue, 1) > 0) {
             return 1;
         }
         else {
-            _errorFlag = true;
-            _errorMessage = "i2c.send Error\n";
+            errorFlag = true;
+            errorMessage = "i2c.send Error\n";
             return -1;
         }
     }
     
     else {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive Error\n";
+        errorFlag = true;
+        errorMessage = "i2c.receive Error\n";
         return -1;
     }
 
-    _errorFlag = true;
-    _errorMessage = "Unknown error\n";
+    errorFlag = true;
+    errorMessage = "Unknown error\n";
     return -1;
 }
 
@@ -968,18 +968,18 @@ int gnublin_module_mcp230xx::pinPolarityMode(int pin, int value) {
  */
 int gnublin_module_mcp230xx::portPolarityMode(int port, int value) {
 
-    _errorFlag = false;
+    errorFlag = false;
     unsigned char txValue;
     int registerAddress;
 
-    if (port < 0 || port > _ports - 1) {
-        _errorFlag = true;
-        sprintf(const_cast<char*>(_errorMessage.c_str()), "Port number is not between 0 and %d\n", _ports - 1);
+    if (port < 0 || port > ports - 1) {
+        errorFlag = true;
+        sprintf(const_cast<char*>(errorMessage.c_str()), "Port number is not between 0 and %d\n", ports - 1);
         return -1;
     }
 
     if (port == GPA) {  /* Port A */
-        registerAddress = IPOLA >> _registerShift;
+        registerAddress = IPOLA >> registerShift;
     }
     else if (port == GPB) {  /* Port B */
         registerAddress = IPOLB;
@@ -995,22 +995,22 @@ int gnublin_module_mcp230xx::portPolarityMode(int port, int value) {
         txValue = 0xff;
     }
     else {
-        _errorFlag = true;
-        _errorMessage = "value != 0/1\n";
+        errorFlag = true;
+        errorMessage = "value != 0/1\n";
         return -1;
     }
 
-    if (_i2c.send(registerAddress, &txValue, 1) > 0) {
+    if (i2c.send(registerAddress, &txValue, 1) > 0) {
         return 1;
     }
     else {
-        _errorFlag = true;
-        _errorMessage = "i2c.send Error\n";
+        errorFlag = true;
+        errorMessage = "i2c.send Error\n";
         return -1;
     }
 
-    _errorFlag = true;
-    _errorMessage = "Unknown error\n";
+    errorFlag = true;
+    errorMessage = "Unknown error\n";
     return -1;
 }
 
@@ -1025,21 +1025,21 @@ int gnublin_module_mcp230xx::portPolarityMode(int port, int value) {
  */
 int gnublin_module_mcp230xx::digitalIntRead(int pin) {
 
-    _errorFlag = false;
+    errorFlag = false;
     unsigned char rxValue;
     int port;
     int registerAddress;
     int shift;
 
-    if (pin < 0 || pin > _pins - 1) {
-        _errorFlag = true;
-        sprintf(const_cast<char*>(_errorMessage.c_str()), "Pin number is not between 0 and %d\n", _pins - 1);
+    if (pin < 0 || pin > pins - 1) {
+        errorFlag = true;
+        sprintf(const_cast<char*>(errorMessage.c_str()), "Pin number is not between 0 and %d\n", pins - 1);
         return -1;
     }
 
     if (pin >= 0 && pin <= 7) {  /* Port A */
         port = 0;
-        registerAddress = INTCAPA >> _registerShift;
+        registerAddress = INTCAPA >> registerShift;
         shift = 7 - pin;
     }
     else if (pin >= 8 && pin <= 15) {  /* Port B */
@@ -1061,7 +1061,7 @@ int gnublin_module_mcp230xx::digitalIntRead(int pin) {
         return -1;
     }
 
-    if (_i2c.receive(registerAddress, &rxValue, 1) > 0) {
+    if (i2c.receive(registerAddress, &rxValue, 1) > 0) {
         rxValue <<= shift;  /* MSB is now the pin we want to read from. */
         rxValue &= 128;     /* Set all bits to 0 except the MSB. */
 
@@ -1072,19 +1072,19 @@ int gnublin_module_mcp230xx::digitalIntRead(int pin) {
             return 1;
         }
         else {
-            _errorFlag = true;
-            _errorMessage = "bitshift failed\n";
+            errorFlag = true;
+            errorMessage = "bitshift failed\n";
             return -1;
         }
     }
     else {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive Error\n";
+        errorFlag = true;
+        errorMessage = "i2c.receive Error\n";
         return -1;
     }
 
-    _errorFlag = true;
-    _errorMessage = "Unknown error\n";
+    errorFlag = true;
+    errorMessage = "Unknown error\n";
     return -1;
 }
 
@@ -1099,18 +1099,18 @@ int gnublin_module_mcp230xx::digitalIntRead(int pin) {
  */
 unsigned char gnublin_module_mcp230xx::readIntPort(int port) {
 
-    _errorFlag = false;
+    errorFlag = false;
     unsigned char rxValue;
     int registerAddress;
 
-    if (port < 0 || port > _ports - 1) {
-        _errorFlag = true;
-        sprintf(const_cast<char*>(_errorMessage.c_str()), "Port number is not between 0 and %d\n", _ports - 1);
+    if (port < 0 || port > ports - 1) {
+        errorFlag = true;
+        sprintf(const_cast<char*>(errorMessage.c_str()), "Port number is not between 0 and %d\n", ports - 1);
         return -1;
     }
 
     if (port == GPA) {  /* Port A */
-        registerAddress = INTCAPA >> _registerShift;
+        registerAddress = INTCAPA >> registerShift;
     }
     else if (port == GPB) {  /* Port B */
         registerAddress = INTCAPB;
@@ -1129,17 +1129,17 @@ unsigned char gnublin_module_mcp230xx::readIntPort(int port) {
         return -1;
     }
 
-    if (_i2c.receive(registerAddress, &rxValue, 1) > 0) {
+    if (i2c.receive(registerAddress, &rxValue, 1) > 0) {
         return rxValue;
     }
     else {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive Error";
+        errorFlag = true;
+        errorMessage = "i2c.receive Error";
         return -1;
     }
 
-    _errorFlag = true;
-    _errorMessage = "Unknown error\n";
+    errorFlag = true;
+    errorMessage = "Unknown error\n";
     return -1;
 }
 
@@ -1154,18 +1154,18 @@ unsigned char gnublin_module_mcp230xx::readIntPort(int port) {
  */
 unsigned char gnublin_module_mcp230xx::readIntFlagPort(int port) {
 
-    _errorFlag = false;
+    errorFlag = false;
     unsigned char rxValue;
     int registerAddress;
 
-    if (port < 0 || port > _ports - 1) {
-        _errorFlag = true;
-        sprintf(const_cast<char*>(_errorMessage.c_str()), "Port number is not between 0 and %d\n", _ports - 1);
+    if (port < 0 || port > ports - 1) {
+        errorFlag = true;
+        sprintf(const_cast<char*>(errorMessage.c_str()), "Port number is not between 0 and %d\n", ports - 1);
         return -1;
     }
 
     if (port == GPA) {  /* Port A */
-        registerAddress = INTFA >> _registerShift;
+        registerAddress = INTFA >> registerShift;
     }
     else if (port == GPB) {  /* Port B */
         registerAddress = INTFB;
@@ -1174,17 +1174,17 @@ unsigned char gnublin_module_mcp230xx::readIntFlagPort(int port) {
         return -1;
     }
 
-    if (_i2c.receive(registerAddress, &rxValue, 1) > 0) {
+    if (i2c.receive(registerAddress, &rxValue, 1) > 0) {
         return rxValue;
     }
     else {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive Error";
+        errorFlag = true;
+        errorMessage = "i2c.receive Error";
         return -1;
     }
 
-    _errorFlag = true;
-    _errorMessage = "Unknown error\n";
+    errorFlag = true;
+    errorMessage = "Unknown error\n";
     return -1;
 }
 
@@ -1217,16 +1217,16 @@ int gnublin_module_mcp230xx::pollInt(void) {
                 /* Read the value from interrupt register so that it will clear the interrupt. */
                 int value = digitalIntRead(pin + (port * 8));
 
-                if (_isr != NULL) {
-                    _isr(port, pin, value);
+                if (isr != NULL) {
+                    isr(port, pin, value);
                 }
 
-                if (_portIsr[port] != NULL) {
-                    (*_portIsr[port])(pin, value);
+                if (portIsr[port] != NULL) {
+                    (*portIsr[port])(pin, value);
                 }
 
-                if (_pinIsr[pin + (port * 8)] != NULL) {
-                    (*_pinIsr[pin + (port * 8)])(value);
+                if (pinIsr[pin + (port * 8)] != NULL) {
+                    (*pinIsr[pin + (port * 8)])(value);
                 }
 
                 count++;
@@ -1249,7 +1249,7 @@ int gnublin_module_mcp230xx::pollInt(void) {
  */
 int gnublin_module_mcp230xx::intIsr(void (*isr)(int, int, int)) {
 
-    _isr = isr;
+    isr = isr;
     return 1;
 }
 
@@ -1265,15 +1265,15 @@ int gnublin_module_mcp230xx::intIsr(void (*isr)(int, int, int)) {
  */
 int gnublin_module_mcp230xx::pinIntIsr(int pin, void (*isr)(int)) {
 
-    _errorFlag = false;
+    errorFlag = false;
 
-    if (pin < 0 || pin > _pins - 1) {
-        _errorFlag = true;
-        sprintf(const_cast<char*>(_errorMessage.c_str()), "Pin number is not between 0 and %d\n", _pins - 1);
+    if (pin < 0 || pin > pins - 1) {
+        errorFlag = true;
+        sprintf(const_cast<char*>(errorMessage.c_str()), "Pin number is not between 0 and %d\n", pins - 1);
         return -1;
     }
 
-    _pinIsr[pin] = isr;
+    pinIsr[pin] = isr;
     return 1;
 }
 
@@ -1289,15 +1289,15 @@ int gnublin_module_mcp230xx::pinIntIsr(int pin, void (*isr)(int)) {
  */
 int gnublin_module_mcp230xx::portIntIsr(int port, void (*isr)(int, int)) {
 
-    _errorFlag = false;
+    errorFlag = false;
 
-    if (port < 0 || port > _ports - 1) {
-        _errorFlag = true;
-        sprintf(const_cast<char*>(_errorMessage.c_str()), "Port number is not between 0 and %d\n", _ports - 1);
+    if (port < 0 || port > ports - 1) {
+        errorFlag = true;
+        sprintf(const_cast<char*>(errorMessage.c_str()), "Port number is not between 0 and %d\n", ports - 1);
         return -1;
     }
 
-    _portIsr[port] = isr;
+    portIsr[port] = isr;
     return 1;
 }
 

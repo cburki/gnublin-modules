@@ -6,9 +6,9 @@
 // Maintainer   : Christophe Burki
 // Created      : Sun May  4 11:24:24 2014
 // Version      : 1.1.0
-// Last-Updated : Sat Sep 20 17:21:28 2014 (7200 CEST)
+// Last-Updated : Sun Oct 12 15:48:45 2014 (7200 CEST)
 //           By : Christophe Burki
-//     Update # : 391
+//     Update # : 407
 // URL          : 
 // Keywords     : 
 // Compatibility: 
@@ -88,12 +88,12 @@ const unsigned char LCD_ROWS[] = { LCD_ROW_1, LCD_ROW_2, LCD_ROW_3, LCD_ROW_4 };
   */
 gnublin_hd44780_driver::gnublin_hd44780_driver(int rs, int en, int d4, int d5, int d6, int d7) {
  
-     _rs = rs;
-     _en = en;
-     _d4 = d4;
-     _d5 = d5;
-     _d6 = d6;
-     _d7 = d7;
+     this->rs = rs;
+     this->en = en;
+     this->d4 = d4;
+     this->d5 = d5;
+     this->d6 = d6;
+     this->d7 = d7;
 }
 
 
@@ -120,12 +120,12 @@ gnublin_hd44780_driver::~gnublin_hd44780_driver(void) {
 gnublin_hd44780_driver_gpio::gnublin_hd44780_driver_gpio(int rs, int en, int d4, int d5, int d6, int d7)
     : gnublin_hd44780_driver(rs, en, d4, d5, d6, d7) {
 
-    _gpio.pinMode(_rs, OUTPUT);
-    _gpio.pinMode(_en, OUTPUT);
-    _gpio.pinMode(_d4, OUTPUT);
-    _gpio.pinMode(_d5, OUTPUT);
-    _gpio.pinMode(_d6, OUTPUT);
-    _gpio.pinMode(_d7, OUTPUT);
+    gpio.pinMode(rs, OUTPUT);
+    gpio.pinMode(en, OUTPUT);
+    gpio.pinMode(d4, OUTPUT);
+    gpio.pinMode(d5, OUTPUT);
+    gpio.pinMode(d6, OUTPUT);
+    gpio.pinMode(d7, OUTPUT);
 }
 
 
@@ -147,58 +147,58 @@ gnublin_hd44780_driver_gpio::~gnublin_hd44780_driver_gpio(void) {
  */
 int gnublin_hd44780_driver_gpio::writeByte(unsigned char byte, int mode) {
 
-    _gpio.digitalWrite(_rs, mode);
+    gpio.digitalWrite(rs, mode);
 
     /* High bits. */
-    _gpio.digitalWrite(_d4, LOW);
-    _gpio.digitalWrite(_d5, LOW);
-    _gpio.digitalWrite(_d6, LOW);
-    _gpio.digitalWrite(_d7, LOW);
+    gpio.digitalWrite(d4, LOW);
+    gpio.digitalWrite(d5, LOW);
+    gpio.digitalWrite(d6, LOW);
+    gpio.digitalWrite(d7, LOW);
 
     if ((byte & 0x10) == 0x10) {
-        _gpio.digitalWrite(_d4, HIGH);
+        gpio.digitalWrite(d4, HIGH);
     }
     if ((byte & 0x20) == 0x20) {
-        _gpio.digitalWrite(_d5, HIGH);
+        gpio.digitalWrite(d5, HIGH);
     }
     if ((byte & 0x40) == 0x40) {
-        _gpio.digitalWrite(_d6, HIGH);
+        gpio.digitalWrite(d6, HIGH);
     }
     if ((byte & 0x80) == 0x80) {
-        _gpio.digitalWrite(_d7, HIGH);
+        gpio.digitalWrite(d7, HIGH);
     }
 
     /* Toggle EN pin. */
     usleep(LCD_DELAY);
-    _gpio.digitalWrite(_en, HIGH);
+    gpio.digitalWrite(en, HIGH);
     usleep(LCD_PULSE);
-    _gpio.digitalWrite(_en, LOW);
+    gpio.digitalWrite(en, LOW);
     usleep(LCD_DELAY);
 
     /* Low bits. */
-    _gpio.digitalWrite(_d4, LOW);
-    _gpio.digitalWrite(_d5, LOW);
-    _gpio.digitalWrite(_d6, LOW);
-    _gpio.digitalWrite(_d7, LOW);
+    gpio.digitalWrite(d4, LOW);
+    gpio.digitalWrite(d5, LOW);
+    gpio.digitalWrite(d6, LOW);
+    gpio.digitalWrite(d7, LOW);
 
     if ((byte & 0x01) == 0x01) {
-        _gpio.digitalWrite(_d4, HIGH);
+        gpio.digitalWrite(d4, HIGH);
     }
     if ((byte & 0x02) == 0x02) {
-        _gpio.digitalWrite(_d5, HIGH);
+        gpio.digitalWrite(d5, HIGH);
     }
     if ((byte & 0x04) == 0x04) {
-        _gpio.digitalWrite(_d6, HIGH);
+        gpio.digitalWrite(d6, HIGH);
     }
     if ((byte & 0x08) == 0x08) {
-        _gpio.digitalWrite(_d7, HIGH);
+        gpio.digitalWrite(d7, HIGH);
     }
 
     /* Toggle EN pin. */
     usleep(LCD_DELAY);
-    _gpio.digitalWrite(_en, HIGH);
+    gpio.digitalWrite(en, HIGH);
     usleep(LCD_PULSE);
-    _gpio.digitalWrite(_en, LOW);
+    gpio.digitalWrite(en, LOW);
     usleep(LCD_DELAY);
 
     return 1;
@@ -224,17 +224,17 @@ int gnublin_hd44780_driver_gpio::writeByte(unsigned char byte, int mode) {
 gnublin_hd44780_driver_74hc595::gnublin_hd44780_driver_74hc595(int rs, int en, int d4, int d5, int d6, int d7, int ds, int shcp, int stcp)
     : gnublin_hd44780_driver(rs, en, d4, d5, d6, d7) {
 
-    _ds = ds;
-    _shcp = shcp;
-    _stcp = stcp;
+    this->ds = ds;
+    this->shcp = shcp;
+    this->stcp = stcp;
 
-    _gpio.pinMode(_ds, OUTPUT);
-    _gpio.pinMode(_shcp, OUTPUT);
-    _gpio.pinMode(_stcp, OUTPUT);
+    gpio.pinMode(ds, OUTPUT);
+    gpio.pinMode(shcp, OUTPUT);
+    gpio.pinMode(stcp, OUTPUT);
 
-    _gpio.digitalWrite(_ds, LOW);
-    _gpio.digitalWrite(_shcp, LOW);
-    _gpio.digitalWrite(_stcp, LOW);
+    gpio.digitalWrite(ds, LOW);
+    gpio.digitalWrite(shcp, LOW);
+    gpio.digitalWrite(stcp, LOW);
 }
 
 
@@ -256,24 +256,24 @@ void gnublin_hd44780_driver_74hc595::shiftByte(unsigned char value, int msbFirst
 
         if (msbFirst == 1) {  /* MSB First */
             if (value & 0x80) {
-                _gpio.digitalWrite(_ds, HIGH);
+                gpio.digitalWrite(ds, HIGH);
             }
             else {
-                _gpio.digitalWrite(_ds, LOW);
+                gpio.digitalWrite(ds, LOW);
             }
         }
         else {                /* LSB First */
             if (value & 1) {
-                _gpio.digitalWrite(_ds, HIGH);
+                gpio.digitalWrite(ds, HIGH);
             }
             else {
-                _gpio.digitalWrite(_ds, LOW);
+                gpio.digitalWrite(ds, LOW);
             }
         }
 
-        _gpio.digitalWrite(_shcp, HIGH);
-        _gpio.digitalWrite(_ds, LOW);
-        _gpio.digitalWrite(_shcp, LOW);
+        gpio.digitalWrite(shcp, HIGH);
+        gpio.digitalWrite(ds, LOW);
+        gpio.digitalWrite(shcp, LOW);
 
         if (msbFirst == 1) {  /* MSB First */
             value <<= 1;
@@ -291,8 +291,8 @@ void gnublin_hd44780_driver_74hc595::shiftByte(unsigned char value, int msbFirst
  */
 void gnublin_hd44780_driver_74hc595::latchByte(void) {
 
-    _gpio.digitalWrite(_stcp, HIGH);
-    _gpio.digitalWrite(_stcp, LOW);
+    gpio.digitalWrite(stcp, HIGH);
+    gpio.digitalWrite(stcp, LOW);
 }
 
 
@@ -306,55 +306,55 @@ void gnublin_hd44780_driver_74hc595::latchByte(void) {
  */
 int gnublin_hd44780_driver_74hc595::writeByte(unsigned char byte, int mode) {
 
-    unsigned char value = 0x00 | (mode << _rs);
+    unsigned char value = 0x00 | (mode << rs);
 
     /* High bits. */
     if ((byte & 0x10) == 0x10) {
-        value |= (1 << _d4);
+        value |= (1 << d4);
     }
     if ((byte & 0x20) == 0x20) {
-        value |= (1 << _d5);
+        value |= (1 << d5);
     }
     if ((byte & 0x40) == 0x40) {
-        value |= (1 << _d6);
+        value |= (1 << d6);
     }
     if ((byte & 0x80) == 0x80) {
-        value |= (1 << _d7);
+        value |= (1 << d7);
     }
 
     /* Toggle EN pin. */
     usleep(LCD_DELAY);
-    value |= (1 << _en);
+    value |= (1 << en);
     shiftByte(value);
     latchByte();
     usleep(LCD_PULSE);
-    value = 0x00 | (mode << _rs);
+    value = 0x00 | (mode << rs);
     shiftByte(value);
     latchByte();
     usleep(LCD_DELAY);
 
     /* Low bits. */
-    value = 0x00 | (mode << _rs);
+    value = 0x00 | (mode << rs);
     if ((byte & 0x01) == 0x01) {
-        value |= (1 << _d4);
+        value |= (1 << d4);
     }
     if ((byte & 0x02) == 0x02) {
-        value |= (1 << _d5);
+        value |= (1 << d5);
     }
     if ((byte & 0x04) == 0x04) {
-        value |= (1 << _d6);
+        value |= (1 << d6);
     }
     if ((byte & 0x08) == 0x08) {
-        value |= (1 << _d7);
+        value |= (1 << d7);
     }
 
     /* Toggle EN pin. */
     usleep(LCD_DELAY);
-    value |= (1 << _en);
+    value |= (1 << en);
     shiftByte(value);
     latchByte();
     usleep(LCD_PULSE);
-    value = 0x00 | (mode << _rs);
+    value = 0x00 | (mode << rs);
     shiftByte(value);
     latchByte();
     usleep(LCD_DELAY);
@@ -381,14 +381,14 @@ int gnublin_hd44780_driver_74hc595::writeByte(unsigned char byte, int mode) {
 gnublin_hd44780_driver_mcp23017::gnublin_hd44780_driver_mcp23017(int rs, int en, int d4, int d5, int d6, int d7, int i2cAddress, std::string i2cFilename)
     : gnublin_hd44780_driver(rs, en, d4, d5, d6, d7) {
 
-    _mcp23017 = gnublin_module_mcp23017(i2cAddress, i2cFilename);
+    mcp23017 = gnublin_module_mcp23017(i2cAddress, i2cFilename);
 
-    _mcp23017.pinMode(_rs, OUTPUT);
-    _mcp23017.pinMode(_en, OUTPUT);
-    _mcp23017.pinMode(_d4, OUTPUT);
-    _mcp23017.pinMode(_d5, OUTPUT);
-    _mcp23017.pinMode(_d6, OUTPUT);
-    _mcp23017.pinMode(_d7, OUTPUT);
+    mcp23017.pinMode(rs, OUTPUT);
+    mcp23017.pinMode(en, OUTPUT);
+    mcp23017.pinMode(d4, OUTPUT);
+    mcp23017.pinMode(d5, OUTPUT);
+    mcp23017.pinMode(d6, OUTPUT);
+    mcp23017.pinMode(d7, OUTPUT);
 }
 
 
@@ -408,7 +408,7 @@ gnublin_hd44780_driver_mcp23017::~gnublin_hd44780_driver_mcp23017(void) {
  */
 void gnublin_hd44780_driver_mcp23017::setAddress(int address) {
 
-    _mcp23017.setAddress(address);
+    mcp23017.setAddress(address);
 }
 
 
@@ -420,7 +420,7 @@ void gnublin_hd44780_driver_mcp23017::setAddress(int address) {
  */
 void gnublin_hd44780_driver_mcp23017::setDevicefile(std::string filename) {
 
-    _mcp23017.setDevicefile(filename);
+    mcp23017.setDevicefile(filename);
 }
 
 
@@ -434,58 +434,58 @@ void gnublin_hd44780_driver_mcp23017::setDevicefile(std::string filename) {
  */
 int gnublin_hd44780_driver_mcp23017::writeByte(unsigned char byte, int mode) {
 
-    _mcp23017.digitalWrite(_rs, mode);
+    mcp23017.digitalWrite(rs, mode);
 
     /* High bits. */
-    _mcp23017.digitalWrite(_d4, LOW);
-    _mcp23017.digitalWrite(_d5, LOW);
-    _mcp23017.digitalWrite(_d6, LOW);
-    _mcp23017.digitalWrite(_d7, LOW);
+    mcp23017.digitalWrite(d4, LOW);
+    mcp23017.digitalWrite(d5, LOW);
+    mcp23017.digitalWrite(d6, LOW);
+    mcp23017.digitalWrite(d7, LOW);
 
     if ((byte & 0x10) == 0x10) {
-        _mcp23017.digitalWrite(_d4, HIGH);
+        mcp23017.digitalWrite(d4, HIGH);
     }
     if ((byte & 0x20) == 0x20) {
-        _mcp23017.digitalWrite(_d5, HIGH);
+        mcp23017.digitalWrite(d5, HIGH);
     }
     if ((byte & 0x40) == 0x40) {
-        _mcp23017.digitalWrite(_d6, HIGH);
+        mcp23017.digitalWrite(d6, HIGH);
     }
     if ((byte & 0x80) == 0x80) {
-        _mcp23017.digitalWrite(_d7, HIGH);
+        mcp23017.digitalWrite(d7, HIGH);
     }
 
     /* Toggle EN pin. */
     usleep(LCD_DELAY);
-    _mcp23017.digitalWrite(_en, HIGH);
+    mcp23017.digitalWrite(en, HIGH);
     usleep(LCD_PULSE);
-    _mcp23017.digitalWrite(_en, LOW);
+    mcp23017.digitalWrite(en, LOW);
     usleep(LCD_DELAY);
 
     /* Low bits. */
-    _mcp23017.digitalWrite(_d4, LOW);
-    _mcp23017.digitalWrite(_d5, LOW);
-    _mcp23017.digitalWrite(_d6, LOW);
-    _mcp23017.digitalWrite(_d7, LOW);
+    mcp23017.digitalWrite(d4, LOW);
+    mcp23017.digitalWrite(d5, LOW);
+    mcp23017.digitalWrite(d6, LOW);
+    mcp23017.digitalWrite(d7, LOW);
 
     if ((byte & 0x01) == 0x01) {
-        _mcp23017.digitalWrite(_d4, HIGH);
+        mcp23017.digitalWrite(d4, HIGH);
     }
     if ((byte & 0x02) == 0x02) {
-        _mcp23017.digitalWrite(_d5, HIGH);
+        mcp23017.digitalWrite(d5, HIGH);
     }
     if ((byte & 0x04) == 0x04) {
-        _mcp23017.digitalWrite(_d6, HIGH);
+        mcp23017.digitalWrite(d6, HIGH);
     }
     if ((byte & 0x08) == 0x08) {
-        _mcp23017.digitalWrite(_d7, HIGH);
+        mcp23017.digitalWrite(d7, HIGH);
     }
 
     /* Toggle EN pin. */
     usleep(LCD_DELAY);
-    _mcp23017.digitalWrite(_en, HIGH);
+    mcp23017.digitalWrite(en, HIGH);
     usleep(LCD_PULSE);
-    _mcp23017.digitalWrite(_en, LOW);
+    mcp23017.digitalWrite(en, LOW);
     usleep(LCD_DELAY);
 
     return 1;
@@ -510,14 +510,14 @@ int gnublin_hd44780_driver_mcp23017::writeByte(unsigned char byte, int mode) {
 gnublin_hd44780_driver_sc16is750::gnublin_hd44780_driver_sc16is750(int rs, int en, int d4, int d5, int d6, int d7, int i2cAddress, std::string i2cFilename)
     : gnublin_hd44780_driver(rs, en, d4, d5, d6, d7) {
 
-    _sc16is750 = gnublin_module_sc16is750(i2cAddress, i2cFilename);
+    sc16is750 = gnublin_module_sc16is750(i2cAddress, i2cFilename);
 
-    _sc16is750.pinMode(_rs, OUTPUT);
-    _sc16is750.pinMode(_en, OUTPUT);
-    _sc16is750.pinMode(_d4, OUTPUT);
-    _sc16is750.pinMode(_d5, OUTPUT);
-    _sc16is750.pinMode(_d6, OUTPUT);
-    _sc16is750.pinMode(_d7, OUTPUT);
+    sc16is750.pinMode(rs, OUTPUT);
+    sc16is750.pinMode(en, OUTPUT);
+    sc16is750.pinMode(d4, OUTPUT);
+    sc16is750.pinMode(d5, OUTPUT);
+    sc16is750.pinMode(d6, OUTPUT);
+    sc16is750.pinMode(d7, OUTPUT);
 }
 
 
@@ -537,7 +537,7 @@ gnublin_hd44780_driver_sc16is750::~gnublin_hd44780_driver_sc16is750(void) {
  */
 void gnublin_hd44780_driver_sc16is750::setAddress(int address) {
 
-    _sc16is750.setAddress(address);
+    sc16is750.setAddress(address);
 }
 
 
@@ -549,7 +549,7 @@ void gnublin_hd44780_driver_sc16is750::setAddress(int address) {
  */
 void gnublin_hd44780_driver_sc16is750::setDevicefile(std::string filename) {
 
-    _sc16is750.setDevicefile(filename);
+    sc16is750.setDevicefile(filename);
 }
 
 
@@ -563,58 +563,58 @@ void gnublin_hd44780_driver_sc16is750::setDevicefile(std::string filename) {
  */
 int gnublin_hd44780_driver_sc16is750::writeByte(unsigned char byte, int mode) {
 
-    _sc16is750.digitalWrite(_rs, mode);
+    sc16is750.digitalWrite(rs, mode);
 
     /* High bits. */
-    _sc16is750.digitalWrite(_d4, LOW);
-    _sc16is750.digitalWrite(_d5, LOW);
-    _sc16is750.digitalWrite(_d6, LOW);
-    _sc16is750.digitalWrite(_d7, LOW);
+    sc16is750.digitalWrite(d4, LOW);
+    sc16is750.digitalWrite(d5, LOW);
+    sc16is750.digitalWrite(d6, LOW);
+    sc16is750.digitalWrite(d7, LOW);
 
     if ((byte & 0x10) == 0x10) {
-        _sc16is750.digitalWrite(_d4, HIGH);
+        sc16is750.digitalWrite(d4, HIGH);
     }
     if ((byte & 0x20) == 0x20) {
-        _sc16is750.digitalWrite(_d5, HIGH);
+        sc16is750.digitalWrite(d5, HIGH);
     }
     if ((byte & 0x40) == 0x40) {
-        _sc16is750.digitalWrite(_d6, HIGH);
+        sc16is750.digitalWrite(d6, HIGH);
     }
     if ((byte & 0x80) == 0x80) {
-        _sc16is750.digitalWrite(_d7, HIGH);
+        sc16is750.digitalWrite(d7, HIGH);
     }
 
     /* Toggle EN pin. */
     usleep(LCD_DELAY);
-    _sc16is750.digitalWrite(_en, HIGH);
+    sc16is750.digitalWrite(en, HIGH);
     usleep(LCD_PULSE);
-    _sc16is750.digitalWrite(_en, LOW);
+    sc16is750.digitalWrite(en, LOW);
     usleep(LCD_DELAY);
 
     /* Low bits. */
-    _sc16is750.digitalWrite(_d4, LOW);
-    _sc16is750.digitalWrite(_d5, LOW);
-    _sc16is750.digitalWrite(_d6, LOW);
-    _sc16is750.digitalWrite(_d7, LOW);
+    sc16is750.digitalWrite(d4, LOW);
+    sc16is750.digitalWrite(d5, LOW);
+    sc16is750.digitalWrite(d6, LOW);
+    sc16is750.digitalWrite(d7, LOW);
 
     if ((byte & 0x01) == 0x01) {
-        _sc16is750.digitalWrite(_d4, HIGH);
+        sc16is750.digitalWrite(d4, HIGH);
     }
     if ((byte & 0x02) == 0x02) {
-        _sc16is750.digitalWrite(_d5, HIGH);
+        sc16is750.digitalWrite(d5, HIGH);
     }
     if ((byte & 0x04) == 0x04) {
-        _sc16is750.digitalWrite(_d6, HIGH);
+        sc16is750.digitalWrite(d6, HIGH);
     }
     if ((byte & 0x08) == 0x08) {
-        _sc16is750.digitalWrite(_d7, HIGH);
+        sc16is750.digitalWrite(d7, HIGH);
     }
 
     /* Toggle EN pin. */
     usleep(LCD_DELAY);
-    _sc16is750.digitalWrite(_en, HIGH);
+    sc16is750.digitalWrite(en, HIGH);
     usleep(LCD_PULSE);
-    _sc16is750.digitalWrite(_en, LOW);
+    sc16is750.digitalWrite(en, LOW);
     usleep(LCD_DELAY);
 
     return 1;
@@ -631,10 +631,10 @@ int gnublin_hd44780_driver_sc16is750::writeByte(unsigned char byte, int mode) {
  */
 gnublin_module_hd44780::gnublin_module_hd44780(gnublin_hd44780_driver *driver) {
 
-    _driver = driver;
-    _errorFlag = false;
-    _rows = 2;
-    _cols = 16;
+    this->driver = driver;
+    errorFlag = false;
+    rows = 2;
+    cols = 16;
 }
 
 
@@ -648,10 +648,10 @@ gnublin_module_hd44780::gnublin_module_hd44780(gnublin_hd44780_driver *driver) {
  */
 gnublin_module_hd44780::gnublin_module_hd44780(gnublin_hd44780_driver *driver, int rows, int cols) {
 
-    _driver = driver;
-    _errorFlag = false;
-    _rows = rows;
-    _cols = cols;
+    this->driver = driver;
+    errorFlag = false;
+    this->rows = rows;
+    this->cols = cols;
 }
 
 
@@ -662,19 +662,19 @@ gnublin_module_hd44780::gnublin_module_hd44780(gnublin_hd44780_driver *driver, i
  * @param row The row on which to set the cursor.
  * @return 1 on success and -1 on error.
  */
-int gnublin_module_hd44780::_setRow(int row) {
+int gnublin_module_hd44780::setRow(int row) {
 
-    _errorFlag = false;
+    errorFlag = false;
 
-    if (row < 1 || row > _rows) {
-        _errorFlag = true;
-        sprintf(const_cast<char*>(_errorMessage.c_str()), "Row number is not between 1 and %d\n", _rows);
+    if (row < 1 || row > rows) {
+        errorFlag = true;
+        sprintf(const_cast<char*>(errorMessage.c_str()), "Row number is not between 1 and %d\n", rows);
         return -1;
     }
 
-    if (_driver->writeByte(LCD_ROWS[row - 1], LCD_CMD) < 0) {
-        _errorFlag = true;
-        _errorMessage = "driver.writeByte Error\n";
+    if (driver->writeByte(LCD_ROWS[row - 1], LCD_CMD) < 0) {
+        errorFlag = true;
+        errorMessage = "driver.writeByte Error\n";
         return -1;
     }
 
@@ -689,25 +689,25 @@ int gnublin_module_hd44780::_setRow(int row) {
  * @param col The column on which to set the cursor.
  * @return 1 on success and -1 on error.
  */
-int gnublin_module_hd44780::_setCol(int col) {
+int gnublin_module_hd44780::setCol(int col) {
 
-    _errorFlag = false;
-    _crtCol = 0;
+    errorFlag = false;
+    crtCol = 0;
 
-    if (col < 1 || col > _cols) {
-        _errorFlag = true;
-        sprintf(const_cast<char*>(_errorMessage.c_str()), "Col number is not between 1 and %d\n", _cols);
+    if (col < 1 || col > cols) {
+        errorFlag = true;
+        sprintf(const_cast<char*>(errorMessage.c_str()), "Col number is not between 1 and %d\n", cols);
         return -1;
     }
 
     for (int i = 1; i < col; i++) {
-        if (_driver->writeByte(' ', LCD_DATA) < 0) {
-            _errorFlag = true;
-            _errorMessage = "driver.writeByte Error\n";
+        if (driver->writeByte(' ', LCD_DATA) < 0) {
+            errorFlag = true;
+            errorMessage = "driver.writeByte Error\n";
             return -1;
         }
     }
-    _crtCol = col;
+    crtCol = col;
 
     return 1;
 }
@@ -720,27 +720,27 @@ int gnublin_module_hd44780::_setCol(int col) {
  * @param buffer The string to print.
  * @return 1 on success and -1 on error.
  */
-int gnublin_module_hd44780::_print(char *buffer) {
+int gnublin_module_hd44780::write(char *buffer) {
 
-    _errorFlag = false;
+    errorFlag = false;
     int length = strlen(buffer);
-    if (length > _cols - _crtCol + 1) {
-        length = _cols - _crtCol + 1;
+    if (length > cols - crtCol + 1) {
+        length = cols - crtCol + 1;
     }
 
     for (int i = 0; i < length; i++) {
-        if (_driver->writeByte(buffer[i], LCD_DATA) < 0) {
-            _errorFlag = true;
-            _errorMessage = "driver.writeByte Error\n";
+        if (driver->writeByte(buffer[i], LCD_DATA) < 0) {
+            errorFlag = true;
+            errorMessage = "driver.writeByte Error\n";
             return -1;
         }
     }
 
-    int padLength = _cols - _crtCol - length;
+    int padLength = cols - crtCol - length;
     for (int i = length; i < padLength; i++) {
-        if (_driver->writeByte(' ', LCD_DATA) < 0) {
-            _errorFlag = true;
-            _errorMessage = "driver.writeByte Error\n";
+        if (driver->writeByte(' ', LCD_DATA) < 0) {
+            errorFlag = true;
+            errorMessage = "driver.writeByte Error\n";
             return -1;
         }
     }
@@ -764,7 +764,7 @@ int gnublin_module_hd44780::init(void) {
     */
 
     for (unsigned int i = 0; i < sizeof(initBytes); i++) {
-        if (int result = _driver->writeByte(initBytes[i], LCD_CMD) < 0) {
+        if (int result = driver->writeByte(initBytes[i], LCD_CMD) < 0) {
             return result;
         }
     }
@@ -781,7 +781,7 @@ int gnublin_module_hd44780::init(void) {
  */
 const char* gnublin_module_hd44780::getErrorMessage(void) {
 
-    return _errorMessage.c_str();
+    return errorMessage.c_str();
 }
 
 
@@ -793,7 +793,7 @@ const char* gnublin_module_hd44780::getErrorMessage(void) {
  */
 bool gnublin_module_hd44780::fail(void) {
 
-    return _errorFlag;
+    return errorFlag;
 }
 
 
@@ -806,7 +806,7 @@ bool gnublin_module_hd44780::fail(void) {
  */
 int gnublin_module_hd44780::offset(int col) {
 
-    return _setCol(col);
+    return setCol(col);
 }
 
 
@@ -819,16 +819,16 @@ int gnublin_module_hd44780::offset(int col) {
  */
 int gnublin_module_hd44780::print(char *buffer) {
 
-    _errorFlag = false;
+    errorFlag = false;
 
-    if (_setRow(1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "set row Error\n";
+    if (setRow(1) < 0) {
+        errorFlag = true;
+        errorMessage = "set row Error\n";
         return -1;
     }
-    _crtCol = 0;
+    crtCol = 0;
 
-    return _print(buffer);
+    return write(buffer);
 }
 
 
@@ -842,16 +842,16 @@ int gnublin_module_hd44780::print(char *buffer) {
  */
 int gnublin_module_hd44780::print(char *buffer, int row) {
 
-    _errorFlag = false;
+    errorFlag = false;
 
-    if (_setRow(row) < 0) {
-        _errorFlag = true;
-        _errorMessage = "set row Error\n";
+    if (setRow(row) < 0) {
+        errorFlag = true;
+        errorMessage = "set row Error\n";
         return -1;
     }
-    _crtCol = 0;
+    crtCol = 0;
 
-    return _print(buffer);
+    return write(buffer);
 }
 
 
@@ -866,21 +866,21 @@ int gnublin_module_hd44780::print(char *buffer, int row) {
  */
 int gnublin_module_hd44780::print(char *buffer, int row, int col) {
 
-    _errorFlag = false;
+    errorFlag = false;
 
-    if (_setRow(row) < 0) {
-        _errorFlag = true;
-        _errorMessage = "set row Error\n";
+    if (setRow(row) < 0) {
+        errorFlag = true;
+        errorMessage = "set row Error\n";
         return -1;
     }
 
-    if (_setCol(col) < 0) {
-        _errorFlag = true;
-        _errorMessage = "set col Error\n";
+    if (setCol(col) < 0) {
+        errorFlag = true;
+        errorMessage = "set col Error\n";
         return -1;
     }
 
-    return _print(buffer);
+    return write(buffer);
 }
 
 
@@ -892,11 +892,11 @@ int gnublin_module_hd44780::print(char *buffer, int row, int col) {
  */
 int gnublin_module_hd44780::clear(void) {
 
-    _errorFlag = false;
+    errorFlag = false;
     
-    if (_driver->writeByte(0x01, LCD_CMD) < 0) {
-        _errorFlag = true;
-        _errorMessage = "driver.writeByte Error\n";
+    if (driver->writeByte(0x01, LCD_CMD) < 0) {
+        errorFlag = true;
+        errorMessage = "driver.writeByte Error\n";
         return -1;
     }
 
@@ -915,7 +915,7 @@ int gnublin_module_hd44780::clear(void) {
  */
 int gnublin_module_hd44780::controlDisplay(int power, int cursor, int blink) {
 
-    _errorFlag = false;
+    errorFlag = false;
     unsigned char ctrlByte = LCD_CTRL;
 
     if (power) {
@@ -928,9 +928,9 @@ int gnublin_module_hd44780::controlDisplay(int power, int cursor, int blink) {
         ctrlByte |= LCD_BLINK;
     }
 
-    if (_driver->writeByte(ctrlByte, LCD_CMD) < 0) {
-        _errorFlag = true;
-        _errorMessage = "driver.writeByte Error\n";
+    if (driver->writeByte(ctrlByte, LCD_CMD) < 0) {
+        errorFlag = true;
+        errorMessage = "driver.writeByte Error\n";
         return -1;
     }
 
@@ -946,15 +946,15 @@ int gnublin_module_hd44780::controlDisplay(int power, int cursor, int blink) {
  */
 int gnublin_module_hd44780::returnHome(void) {
     
-    _errorFlag = false;
+    errorFlag = false;
     
-    if (_driver->writeByte(LCD_HOME, LCD_CMD) < 0) {
-        _errorFlag = true;
-        _errorMessage = "driver.writeByte Error\n";
+    if (driver->writeByte(LCD_HOME, LCD_CMD) < 0) {
+        errorFlag = true;
+        errorMessage = "driver.writeByte Error\n";
         return -1;
     }
 
-    _crtCol = 0;
+    crtCol = 0;
     return 1;
 }
 
