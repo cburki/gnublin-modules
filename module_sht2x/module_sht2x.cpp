@@ -6,9 +6,9 @@
 // Maintainer   : Christophe Burki
 // Created      : Tue Sep 16 19:51:06 2014
 // Version      : 1.0.0
-// Last-Updated : Mon Sep 22 10:54:29 2014 (7200 CEST)
+// Last-Updated : Sun Oct 12 15:01:47 2014 (7200 CEST)
 //           By : Christophe Burki
-//     Update # : 114
+//     Update # : 123
 // URL          : 
 // Keywords     : 
 // Compatibility: 
@@ -69,7 +69,7 @@
  */
 gnublin_module_sht2x::gnublin_module_sht2x(int address, std::string filename) {
 
-    _errorFlag = false;
+    errorFlag = false;
 
     setAddress(address);
     setDevicefile(filename);
@@ -83,7 +83,7 @@ gnublin_module_sht2x::gnublin_module_sht2x(int address, std::string filename) {
  */
 const char* gnublin_module_sht2x::getErrorMessage(void) {
 
-    return _errorMessage.c_str();
+    return errorMessage.c_str();
 }
 
 
@@ -95,7 +95,7 @@ const char* gnublin_module_sht2x::getErrorMessage(void) {
  */
 bool gnublin_module_sht2x::fail(void) {
 
-    return _errorFlag;
+    return errorFlag;
 }
 
 
@@ -107,7 +107,7 @@ bool gnublin_module_sht2x::fail(void) {
  */
 void gnublin_module_sht2x::setAddress(int address) {
 
-    _i2c.setAddress(address);
+    i2c.setAddress(address);
 }
 
 
@@ -119,7 +119,7 @@ void gnublin_module_sht2x::setAddress(int address) {
  */
 void gnublin_module_sht2x::setDevicefile(std::string filename) {
 
-    _i2c.setDevicefile(filename);
+    i2c.setDevicefile(filename);
 }
 
 
@@ -131,15 +131,15 @@ void gnublin_module_sht2x::setDevicefile(std::string filename) {
  */
 int gnublin_module_sht2x::softReset(void) {
 
-    _errorFlag = false;
+    errorFlag = false;
     unsigned char txBuffer = SOFT_RESET;
 
-    if (_i2c.send(&txBuffer, 1) > 0) {
+    if (i2c.send(&txBuffer, 1) > 0) {
         return 1;
     }
 
-    _errorFlag = true;
-    _errorMessage = "i2c.send (SOFT_RESET) Error\n";
+    errorFlag = true;
+    errorMessage = "i2c.send (SOFT_RESET) Error\n";
     return -1;
 }
 
@@ -152,17 +152,17 @@ int gnublin_module_sht2x::softReset(void) {
  */
 float gnublin_module_sht2x::readTemperature(void) {
 
-    _errorFlag = false;
+    errorFlag = false;
     float temperature = -99.99;
     unsigned char rxBuffer[3];
 
     /* Read the temperature. */
-    if (_readSensor(rxBuffer, TEMP_NOHOLD) < 0) {
+    if (readSensor(rxBuffer, TEMP_NOHOLD) < 0) {
         return temperature;
     }
 
     /* Check the CRC. */
-    if (_checkCrc(rxBuffer, 2, rxBuffer[2]) < 0) {
+    if (checkCrc(rxBuffer, 2, rxBuffer[2]) < 0) {
         return -99.99;
     }
 
@@ -181,17 +181,17 @@ float gnublin_module_sht2x::readTemperature(void) {
  */
 float gnublin_module_sht2x::readHumidity(void) {
 
-    _errorFlag = false;
+    errorFlag = false;
     float humidity = -99.99;
     unsigned char rxBuffer[3];
 
     /* Read the temperature. */
-    if (_readSensor(rxBuffer, HUM_NOHOLD) < 0) {
+    if (readSensor(rxBuffer, HUM_NOHOLD) < 0) {
         return humidity;
     }
 
     /* Check the CRC. */
-    if (_checkCrc(rxBuffer, 2, rxBuffer[2]) < 0) {
+    if (checkCrc(rxBuffer, 2, rxBuffer[2]) < 0) {
         return -99.99;
     }
 
@@ -223,23 +223,23 @@ float gnublin_module_sht2x::convertC2F(float c) {
  * @param command The command specifying what to read fro sensor.
  * @return -1 on error and 1 on success.
  */
-int gnublin_module_sht2x::_readSensor(unsigned char *data, unsigned char command) {
+int gnublin_module_sht2x::readSensor(unsigned char *data, unsigned char command) {
 
-    _errorFlag = false;
+    errorFlag = false;
 
     /* Start measurement. */
-    if (_i2c.send(&command, 1) < 0) {
-        _errorFlag = true;
-        sprintf(const_cast<char*>(_errorMessage.c_str()), "i2c.send (0x%02x) Error\n", command);
+    if (i2c.send(&command, 1) < 0) {
+        errorFlag = true;
+        sprintf(const_cast<char*>(errorMessage.c_str()), "i2c.send (0x%02x) Error\n", command);
         return -1;
     }
 
     usleep(1000 * 100);
 
     /* Read data. */
-    if (_i2c.receive(data, 3) < 0) {
-        _errorFlag = true;
-        sprintf(const_cast<char*>(_errorMessage.c_str()), "i2c.receive (0x%02x) Error\n", command);
+    if (i2c.receive(data, 3) < 0) {
+        errorFlag = true;
+        sprintf(const_cast<char*>(errorMessage.c_str()), "i2c.receive (0x%02x) Error\n", command);
         return -1;
     }
 
@@ -256,9 +256,9 @@ int gnublin_module_sht2x::_readSensor(unsigned char *data, unsigned char command
  * @param bytes The number of bytes to compute the checksum.
  * @param checksum The checksum to compare the computed checksum.
  */
-int gnublin_module_sht2x::_checkCrc(unsigned char *data, int bytes, unsigned char checksum) {
+int gnublin_module_sht2x::checkCrc(unsigned char *data, int bytes, unsigned char checksum) {
 
-    _errorFlag = false;
+    errorFlag = false;
     unsigned char crc = 0;
 
     for (int i = 0; i < bytes; i++) {
@@ -274,8 +274,8 @@ int gnublin_module_sht2x::_checkCrc(unsigned char *data, int bytes, unsigned cha
     }
 
     if (crc != checksum) {
-        _errorFlag = true;
-        _errorMessage = "CRC error !";
+        errorFlag = true;
+        errorMessage = "CRC error !";
         return -1;
     }
 

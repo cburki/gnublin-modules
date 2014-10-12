@@ -6,9 +6,9 @@
  * Maintainer   : Christophe Burki
  * Created      : Mon Sep 15 21:00:07 2014
  * Version      : 1.0.0
- * Last-Updated : Mon Sep 22 10:43:10 2014 (7200 CEST)
+ * Last-Updated : Sun Oct 12 14:59:47 2014 (7200 CEST)
  *           By : Christophe Burki
- *     Update # : 19
+ *     Update # : 20
  * URL          : 
  * Keywords     : 
  * Compatibility: 
@@ -60,12 +60,12 @@
 class gnublin_module_sht2x {
 
   private :
-    gnublin_i2c _i2c;
-    bool _errorFlag;
-    std::string _errorMessage;
+    gnublin_i2c i2c;
+    bool errorFlag;
+    std::string errorMessage;
 
-    int _readSensor(unsigned char *data, unsigned char command);
-    int _checkCrc(unsigned char *data, int bytes, unsigned char checksum);
+    int readSensor(unsigned char *data, unsigned char command);
+    int checkCrc(unsigned char *data, int bytes, unsigned char checksum);
 
  public :
     gnublin_module_sht2x(int address = 0x40, std::string filename = "/dev/i2c-1");
