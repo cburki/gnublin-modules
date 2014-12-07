@@ -5,10 +5,10 @@
  * Author       : Christophe Burki
  * Maintainer   : Christophe Burki
  * Created      : Sun May  4 14:30:36 2014
- * Version      : 1.0.0
- * Last-Updated : Sat Sep 20 17:24:16 2014 (7200 CEST)
+ * Version      : 2.0.0
+ * Last-Updated : Sun Dec  7 11:50:16 2014 (3600 CET)
  *           By : Christophe Burki
- *     Update # : 78
+ *     Update # : 113
  * URL          : 
  * Keywords     : 
  * Compatibility: 
@@ -77,6 +77,16 @@ int main(void) {
     }
 
     sleep(2);
+    lcd.setCursor(1, 8);
+    lcd.print((char *)"0");
+
+    sleep(2);
+    lcd.clear();
+
+    sleep(2);
+    lcd.clear(2, 1);
+
+    sleep(2);
     lcd.controlDisplay(0, 1, 1);
     sleep(2);
     lcd.controlDisplay(1, 1, 1);
@@ -85,8 +95,24 @@ int main(void) {
     lcd.returnHome();
     sleep(2);
     lcd.controlDisplay(1, 0, 0);
-    sleep(5);
-    lcd.clear();
+    sleep(2);
+    lcd.clearDisplay();
+
+    sleep(2);
+    unsigned int charMap[8] = {
+        0b00000,
+        0b10001,
+        0b00000,
+        0b00000,
+        0b01110,
+        0b00000,
+        0b11111
+    };
+    lcd.createChar(0, charMap);
+    lcd.print((unsigned char)0, 1, 1);
+    if (lcd.fail()) {
+        printf("error)%s\n", lcd.getErrorMessage());
+    }
 }
 
 /* -------------------------------------------------------------------------- */

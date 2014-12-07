@@ -5,10 +5,10 @@
  * Author       : Christophe Burki
  * Maintainer   : Christophe Burki
  * Created      : Sat May  3 18:21:57 2014
- * Version      : 1.2.0
- * Last-Updated : Sun Oct 12 15:05:05 2014 (7200 CEST)
+ * Version      : 2.0.0
+ * Last-Updated : Sun Dec  7 11:50:12 2014 (3600 CET)
  *           By : Christophe Burki
- *     Update # : 111
+ *     Update # : 137
  * URL          : 
  * Keywords     : 
  * Compatibility: 
@@ -177,13 +177,13 @@ class gnublin_module_hd44780 {
     int rows;
     int cols;
     int crtCol;
+    int crtRow;
     gnublin_hd44780_driver *driver;
     bool errorFlag;
     std::string errorMessage;
 
-    int setRow(int row);
-    int setCol(int col);
     int write(char *buffer);
+    int write(unsigned char c);
 
  public :
     gnublin_module_hd44780(gnublin_hd44780_driver *driver);
@@ -192,13 +192,20 @@ class gnublin_module_hd44780 {
     const char* getErrorMessage(void);
     bool fail(void);
 
-    int offset(int num);
+    int setCursor(int row = 1, int col = 1);
     int print(char *buffer);
     int print(char *buffer, int row);
-    int print(char *buffer, int row, int offset);
+    int print(char *buffer, int row, int col);
+    int print(unsigned char c);
+    int print(unsigned char c, int row);
+    int print(unsigned char c, int row, int col);
     int clear(void);
+    int clear(int row, int col);
+    int clearDisplay(void);
     int returnHome(void);
     int controlDisplay(int power, int cursor, int blink);
+
+    int createChar(unsigned int location, unsigned int charMap[]);
 };
 
 /* -------------------------------------------------------------------------- */

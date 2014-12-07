@@ -5,10 +5,10 @@
 // Author       : Christophe Burki
 // Maintainer   : Christophe Burki
 // Created      : Sun May  4 11:24:24 2014
-// Version      : 1.1.0
-// Last-Updated : Sun Oct 12 15:48:45 2014 (7200 CEST)
+// Version      : 2.0.0
+// Last-Updated : Sun Dec  7 11:50:03 2014 (3600 CET)
 //           By : Christophe Burki
-//     Update # : 407
+//     Update # : 573
 // URL          : 
 // Keywords     : 
 // Compatibility: 
@@ -63,15 +63,18 @@
 #define LCD_ROW_4 0xd4   /* LCD register address for line 4. */
 const unsigned char LCD_ROWS[] = { LCD_ROW_1, LCD_ROW_2, LCD_ROW_3, LCD_ROW_4 };
 
-#define LCD_CLEAR  0x01
-#define LCD_HOME   0x02
-#define LCD_CTRL   0x08
-#define LCD_ONOFF  0x0c
-#define LCD_CURSOR 0x0a
-#define LCD_BLINK  0x09
+#define LCD_CLEAR     0x01
+#define LCD_HOME      0x02
+#define LCD_CTRL      0x08
+#define LCD_ONOFF     0x0c
+#define LCD_CURSOR    0x0a
+#define LCD_BLINK     0x09
+#define LCD_CGRAM     0x40
 
-#define LCD_PULSE 50     /* micro seconds. */
-#define LCD_DELAY 50
+#define MAX_CGRAM_LOC 8
+
+#define LCD_PULSE 5     /* micro seconds. */
+#define LCD_DELAY 5
 
 /* -------------------------------------------------------------------------- */
 
@@ -119,6 +122,7 @@ gnublin_hd44780_driver::~gnublin_hd44780_driver(void) {
  */
 gnublin_hd44780_driver_gpio::gnublin_hd44780_driver_gpio(int rs, int en, int d4, int d5, int d6, int d7)
     : gnublin_hd44780_driver(rs, en, d4, d5, d6, d7) {
+
 
     gpio.pinMode(rs, OUTPUT);
     gpio.pinMode(en, OUTPUT);
@@ -635,6 +639,9 @@ gnublin_module_hd44780::gnublin_module_hd44780(gnublin_hd44780_driver *driver) {
     errorFlag = false;
     rows = 2;
     cols = 16;
+
+    crtRow = 1;
+    crtCol = 1;
 }
 
 
@@ -652,64 +659,9 @@ gnublin_module_hd44780::gnublin_module_hd44780(gnublin_hd44780_driver *driver, i
     errorFlag = false;
     this->rows = rows;
     this->cols = cols;
-}
 
-
-/**
- * @~english
- * @brief Set the cursor to the given row.
- *
- * @param row The row on which to set the cursor.
- * @return 1 on success and -1 on error.
- */
-int gnublin_module_hd44780::setRow(int row) {
-
-    errorFlag = false;
-
-    if (row < 1 || row > rows) {
-        errorFlag = true;
-        sprintf(const_cast<char*>(errorMessage.c_str()), "Row number is not between 1 and %d\n", rows);
-        return -1;
-    }
-
-    if (driver->writeByte(LCD_ROWS[row - 1], LCD_CMD) < 0) {
-        errorFlag = true;
-        errorMessage = "driver.writeByte Error\n";
-        return -1;
-    }
-
-    return 1;
-}
-
-
-/**
- * @~english
- * @brief Set the cursor to the given column.
- *
- * @param col The column on which to set the cursor.
- * @return 1 on success and -1 on error.
- */
-int gnublin_module_hd44780::setCol(int col) {
-
-    errorFlag = false;
-    crtCol = 0;
-
-    if (col < 1 || col > cols) {
-        errorFlag = true;
-        sprintf(const_cast<char*>(errorMessage.c_str()), "Col number is not between 1 and %d\n", cols);
-        return -1;
-    }
-
-    for (int i = 1; i < col; i++) {
-        if (driver->writeByte(' ', LCD_DATA) < 0) {
-            errorFlag = true;
-            errorMessage = "driver.writeByte Error\n";
-            return -1;
-        }
-    }
-    crtCol = col;
-
-    return 1;
+    crtRow = 1;
+    crtCol = 1;
 }
 
 
@@ -727,7 +679,7 @@ int gnublin_module_hd44780::write(char *buffer) {
     if (length > cols - crtCol + 1) {
         length = cols - crtCol + 1;
     }
-
+   
     for (int i = 0; i < length; i++) {
         if (driver->writeByte(buffer[i], LCD_DATA) < 0) {
             errorFlag = true;
@@ -736,13 +688,25 @@ int gnublin_module_hd44780::write(char *buffer) {
         }
     }
 
-    int padLength = cols - crtCol - length;
-    for (int i = length; i < padLength; i++) {
-        if (driver->writeByte(' ', LCD_DATA) < 0) {
-            errorFlag = true;
-            errorMessage = "driver.writeByte Error\n";
-            return -1;
-        }
+    return 1;
+}
+
+
+/**
+ * @~english
+ * @brief Print a character at the current row and column.
+ *
+ * @param c The character to print.
+ * @return 1 on success and -1 on error.
+ */
+int gnublin_module_hd44780::write(unsigned char c) {
+
+    errorFlag = false;
+   
+    if (driver->writeByte(c, LCD_DATA) < 0) {
+        errorFlag = true;
+        errorMessage = "driver.writeByte Error\n";
+        return -1;
     }
 
     return 1;
@@ -799,14 +763,32 @@ bool gnublin_module_hd44780::fail(void) {
 
 /**
  * @~english
- * @brief Set an offset to the display
+ * @brief Set the cursor at the given position.
  *
- * @param col Number of column for the offset.
+ * @param row The row on which to place the cursor.
+ * @param col The column on which to place the cursor.
  * @return 1 on success and -1 on error.
  */
-int gnublin_module_hd44780::offset(int col) {
+int gnublin_module_hd44780::setCursor(int row, int col) {
 
-    return setCol(col);
+    errorFlag = false;
+
+    if (col < 1 || col > cols) {
+        errorFlag = true;
+        sprintf(const_cast<char*>(errorMessage.c_str()), "Col number is not between 1 and %d\n", cols);
+        return -1;
+    }
+
+    unsigned char pos = LCD_ROWS[row -1] + col - 1;
+    if (driver->writeByte(pos, LCD_CMD) < 0) {
+        errorFlag = true;
+        errorMessage = "driver.writeByte Error\n";
+        return -1;
+    }
+
+    crtCol = col;
+    crtRow = row;
+    return 1;
 }
 
 
@@ -821,12 +803,11 @@ int gnublin_module_hd44780::print(char *buffer) {
 
     errorFlag = false;
 
-    if (setRow(1) < 0) {
+    if (setCursor(crtRow, crtCol) < 0) {
         errorFlag = true;
-        errorMessage = "set row Error\n";
+        errorMessage = "set cursor position Error\n";
         return -1;
     }
-    crtCol = 0;
 
     return write(buffer);
 }
@@ -834,7 +815,7 @@ int gnublin_module_hd44780::print(char *buffer) {
 
 /**
  * @~english
- * @brief Print a string on the display at the given row.
+ * @brief Print a string on the display at the given row and current position.
  *
  * @param buffer The string to print.
  * @param row The row at which to print the string.
@@ -844,12 +825,11 @@ int gnublin_module_hd44780::print(char *buffer, int row) {
 
     errorFlag = false;
 
-    if (setRow(row) < 0) {
+    if (setCursor(row, crtCol) < 0) {
         errorFlag = true;
-        errorMessage = "set row Error\n";
+        errorMessage = "set cursor position Error\n";
         return -1;
     }
-    crtCol = 0;
 
     return write(buffer);
 }
@@ -857,7 +837,7 @@ int gnublin_module_hd44780::print(char *buffer, int row) {
 
 /**
  * @~english
- * @brief Pritn a string on the display athe given row and column.
+ * @brief Print a string on the display athe given row and column.
  *
  * @param buffer The string to print.
  * @param row The row at which to print the string.
@@ -868,15 +848,9 @@ int gnublin_module_hd44780::print(char *buffer, int row, int col) {
 
     errorFlag = false;
 
-    if (setRow(row) < 0) {
+    if (setCursor(row, col) < 0) {
         errorFlag = true;
-        errorMessage = "set row Error\n";
-        return -1;
-    }
-
-    if (setCol(col) < 0) {
-        errorFlag = true;
-        errorMessage = "set col Error\n";
+        errorMessage = "set cursor position Error\n";
         return -1;
     }
 
@@ -886,11 +860,125 @@ int gnublin_module_hd44780::print(char *buffer, int row, int col) {
 
 /**
  * @~english
- * @brief Clear the display.
+ * @brief Print a character on the display at the current cursor position.
+ *
+ * @param buffer The character to print.
+ * @return 1 on success and -1 on error.
+ */
+int gnublin_module_hd44780::print(unsigned char c) {
+
+    errorFlag = false;
+
+    if (setCursor(crtRow, crtCol) < 0) {
+        errorFlag = true;
+        errorMessage = "set cursor position Error\n";
+        return -1;
+    }
+
+    return write(c);    
+}
+
+
+/**
+ * @~english
+ * @brief Print a character on the display at the given row and current position.
+ *
+ * @param buffer The character to print.
+ * @param row The row at which to print the string.
+ * @return 1 on success and -1 on error.
+ */
+int gnublin_module_hd44780::print(unsigned char c, int row) {
+
+    errorFlag = false;
+
+    if (setCursor(row, crtCol) < 0) {
+        errorFlag = true;
+        errorMessage = "set cursor position Error\n";
+        return -1;
+    }
+
+    return write(c);
+}
+
+
+/**
+ * @~english
+ * @brief Print a character on the display athe given row and column.
+ *
+ * @param buffer The character to print.
+ * @param row The row at which to print the string.
+ * @param col The column at which to print the string.
+ * @return 1 on success and -1 on error.
+ */
+int gnublin_module_hd44780::print(unsigned char c, int row, int col) {
+
+    errorFlag = false;
+
+    if (setCursor(row, col) < 0) {
+        errorFlag = true;
+        errorMessage = "set cursor position Error\n";
+        return -1;
+    }
+
+    return write(c);
+}
+
+
+/**
+ * @~english
+ * @brief Clear the character at the current row from the current column.
  *
  * @return 1 on success and -1 on error.
  */
 int gnublin_module_hd44780::clear(void) {
+
+    errorFlag = false;
+    int padLength = cols - crtCol + 1;
+
+    if (setCursor(crtRow, crtCol) < 0) {
+        errorFlag = true;
+        errorMessage = "set cursor position Error\n";
+        return -1;
+    }
+
+    for (int i = 0; i < padLength; i++) {
+        if (driver->writeByte(' ', LCD_DATA) < 0) {
+            errorFlag = true;
+            errorMessage = "driver.writeByte Error\n";
+            return -1;
+        }
+    }
+
+    return 1;
+}
+
+
+/**
+ * @~english
+ * @brief Clear the character at the given row from the given column.
+ *
+ * @return 1 on success and -1 on error.
+ */
+int gnublin_module_hd44780::clear(int row, int col) {
+
+    errorFlag = false;
+
+    if (setCursor(row, col) < 0) {
+        errorFlag = true;
+        errorMessage = "set cursor position Error\n";
+        return -1;
+    }
+    return clear();
+}
+
+
+/**
+ * @~english
+ * @brief Clear the display.
+ *
+ * @return 1 on success and -1 on error.
+ */
+int gnublin_module_hd44780::clearDisplay(void) {
 
     errorFlag = false;
     
@@ -955,6 +1043,46 @@ int gnublin_module_hd44780::returnHome(void) {
     }
 
     crtCol = 0;
+    return 1;
+}
+
+
+/**
+ * @~english
+ * @brief Create a custom character and store it in the CGRAM
+ * (Character Generator RAM).
+ *
+ * @param location The CGRAM location where to store the character.
+ * @param charMap The character map pattern to create.
+ *
+ * @return 1 on success and -1 on error.
+ */
+int gnublin_module_hd44780::createChar(unsigned int location, unsigned int charMap[]) {
+
+    errorFlag = false;
+
+    if (location < 0 || location > MAX_CGRAM_LOC) {
+        errorFlag = true;
+        sprintf(const_cast<char*>(errorMessage.c_str()), "CGRAM location is not between 0 and %d\n", MAX_CGRAM_LOC);
+        return -1;
+    }
+
+    /* Set the CGRAM address. */
+    unsigned char cgramAddress = LCD_CGRAM | (location << 3);
+    if (driver->writeByte(cgramAddress, LCD_CMD) < 0) {
+        errorFlag = true;
+        errorMessage = "driver.writeByte Error\n";
+        return -1;
+    }
+    
+    for (unsigned int i = 0; i < 8; i++) {
+        if (driver->writeByte(charMap[i], LCD_DATA) < 0) {
+            errorFlag = true;
+            errorMessage = "driver.writeByte Error\n";
+            return -1;
+        }
+    }
+
     return 1;
 }
 
