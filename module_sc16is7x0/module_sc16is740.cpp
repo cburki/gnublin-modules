@@ -6,9 +6,9 @@
 // Maintainer   : Christophe Burki
 // Created      : Thu May 29 15:14:01 2014
 // Version      : 1.0.0
-// Last-Updated : Sun Aug 31 16:12:27 2014 (7200 CEST)
+// Last-Updated : Thu Sep 11 11:09:27 2014 (7200 CEST)
 //           By : Christophe Burki
-//     Update # : 856
+//     Update # : 858
 // URL          : 
 // Keywords     : 
 // Compatibility: 
@@ -53,27 +53,10 @@
 
 /**
  * @~english
- * @brief Set the default i2c address to 0x20 and default i2c file to /dev/i2c-1.
- */
-gnublin_module_sc16is740::gnublin_module_sc16is740(void)
-    : gnublin_module_sc16is7x0() {
-
-}
-
-
-/**
- * @~english
- * @brief Set the given i2c address and the default i2c file to /dev/i2c-1.
- */
-gnublin_module_sc16is740::gnublin_module_sc16is740(int address)
-    : gnublin_module_sc16is7x0(address) {
-
-}
-
-
-/**
- * @~english
  * @brief Set the given i2c address to 0x20 and the given i2c file to /dev/i2c-1.
+ *
+ * @param address The i2c address.
+ * @param filename The i2c device file.
  */
 gnublin_module_sc16is740::gnublin_module_sc16is740(int address, std::string filename)
     : gnublin_module_sc16is7x0(address, filename) {

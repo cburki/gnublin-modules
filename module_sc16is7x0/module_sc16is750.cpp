@@ -6,9 +6,9 @@
 // Maintainer   : Christophe Burki
 // Created      : Thu May 29 15:14:01 2014
 // Version      : 1.0.0
-// Last-Updated : Sun Aug 31 16:15:57 2014 (7200 CEST)
+// Last-Updated : Thu Dec 11 21:42:56 2014 (3600 CET)
 //           By : Christophe Burki
-//     Update # : 860
+//     Update # : 886
 // URL          : 
 // Keywords     : 
 // Compatibility: 
@@ -53,37 +53,16 @@
 
 /**
  * @~english
- * @brief Set the default i2c address to 0x20 and default i2c file to /dev/i2c-1.
- */
-gnublin_module_sc16is750::gnublin_module_sc16is750(void) 
-    : gnublin_module_sc16is7x0() {
-
-    _ioLatchReg = 0x00;
-    _isrIO = NULL;
-}
-
-
-/**
- * @~english
- * @brief Set the given i2c address and the default i2c file to /dev/i2c-1.
- */
-gnublin_module_sc16is750::gnublin_module_sc16is750(int address)
-    : gnublin_module_sc16is7x0(address) {
-
-    _ioLatchReg = 0x00;
-    _isrIO = NULL;
-}
-
-
-/**
- * @~english
  * @brief Set the given i2c address to 0x20 and the given i2c file to /dev/i2c-1.
+ *
+ * @param address The i2c address.
+ * @param filename The i2c device file.
  */
 gnublin_module_sc16is750::gnublin_module_sc16is750(int address, std::string filename)
     : gnublin_module_sc16is7x0(address, filename) {
 
-    _ioLatchReg = 0x00;
-    _isrIO = NULL;
+    ioLatchReg = 0x00;
+    isrIO = NULL;
 }
 
 
@@ -113,8 +92,8 @@ int gnublin_module_sc16is750::init(void) {
  */
 int gnublin_module_sc16is750::initIO(unsigned char value) {
     
-    _errorFlag = false;
-    unsigned char txBuf[1];
+    errorFlag = false;
+    unsigned char txValue;
 
     /* Set the IOCTRL (I/O Control Register).
      * IOCTRL[0] : I/O latch disabled        -> 0
@@ -126,10 +105,17 @@ int gnublin_module_sc16is750::initIO(unsigned char value) {
      * IOCTRL[6] : Reserved
      * IOCTRL[7] : Reserved
      */
-    txBuf[0] = CONF_IO_DFLT | value;
-    if (_i2c.send(IOCTRL, txBuf, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.send (IOCTRL) Error\n";
+    txValue = CONF_IO_DFLT | value;
+    if (i2c.send(IOCTRL, &txValue, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.send (IOCTRL) Error\n";
+        return -1;
+    }
+
+    /* Set port to output. */
+    if (portMode("out") < 0) {
+        errorFlag = true;
+        errorMessage = "set port mode Error\n";
         return -1;
     }
 
@@ -147,51 +133,51 @@ int gnublin_module_sc16is750::initIO(unsigned char value) {
  */
 int gnublin_module_sc16is750::pinMode(int pin, std::string direction) {
 
-    _errorFlag = false;
-    unsigned char txBuf[1];
-    unsigned char rxBuf[1];
+    errorFlag = false;
+    unsigned char txValue;
+    unsigned char rxValue;
 
     if (pin < 0 || pin > 7) {
-        _errorFlag = true;
-        _errorMessage = "Pin number is not between 0 and 7\n";
+        errorFlag = true;
+        errorMessage = "Pin number is not between 0 and 7\n";
         return -1;
     }
 
-    txBuf[0] = 1 << pin;
+    txValue = 1 << pin;
 
     /* Read the current state. */
-    if (_i2c.receive(IODIR, rxBuf, 1) > 0) {
+    if (i2c.receive(IODIR, &rxValue, 1) > 0) {
 
         if (direction == OUTPUT) {
-            txBuf[0] = rxBuf[0] | txBuf[0];
+            txValue = rxValue | txValue;
         }
         else if (direction == INPUT) {
-            txBuf[0] = rxBuf[0] & ~txBuf[0];
+            txValue = rxValue & ~txValue;
         }
         else {
-            _errorFlag = true;
-            _errorMessage = "direction != in/out\n";
+            errorFlag = true;
+            errorMessage = "direction != in/out\n";
             return -1;
         }
 
-        if (_i2c.send(IODIR, txBuf, 1) > 0) {
+        if (i2c.send(IODIR, &txValue, 1) > 0) {
             return 1;
         }
         else {
-            _errorFlag = true;
-            _errorMessage = "i2c.send (IODIR) Error\n";
+            errorFlag = true;
+            errorMessage = "i2c.send (IODIR) Error\n";
             return -1;
         }
     }
 
     else {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive (IODIR) Error\n";
+        errorFlag = true;
+        errorMessage = "i2c.receive (IODIR) Error\n";
         return -1;
     }
 
-    _errorFlag = true;
-    _errorMessage = "Unknown Error\n";
+    errorFlag = true;
+    errorMessage = "Unknown Error\n";
     return -1;
 }
 
@@ -206,32 +192,32 @@ int gnublin_module_sc16is750::pinMode(int pin, std::string direction) {
  */
 int gnublin_module_sc16is750::portMode(std::string direction) {
 
-    _errorFlag = false;
-    unsigned char txBuf[1];
+    errorFlag = false;
+    unsigned char txValue;
 
     if (direction == OUTPUT) {
-        txBuf[0] = 0xff;
+        txValue = 0xff;
     }
     else if (direction == INPUT) {
-        txBuf[0] = 0x00;
+        txValue = 0x00;
     }
     else {
-        _errorFlag = true;
-        _errorMessage = "direction != in/out\n";
+        errorFlag = true;
+        errorMessage = "direction != in/out\n";
         return -1;
     }
 
-    if (_i2c.send(IODIR, txBuf, 1) > 0) {
+    if (i2c.send(IODIR, &txValue, 1) > 0) {
         return 1;
     }
     else {
-        _errorFlag = true;
-        _errorMessage = "i2c.send (IODIR) Error\n";
+        errorFlag = true;
+        errorMessage = "i2c.send (IODIR) Error\n";
         return -1;
     }
 
-    _errorFlag = true;
-    _errorMessage = "Unknown Error\n";
+    errorFlag = true;
+    errorMessage = "Unknown Error\n";
     return -1;
 }
 
@@ -246,51 +232,51 @@ int gnublin_module_sc16is750::portMode(std::string direction) {
  */
 int gnublin_module_sc16is750::digitalWrite(int pin, int value) {
 
-    _errorFlag = false;
-    unsigned char txBuf[1];
-    unsigned char rxBuf[1];
+    errorFlag = false;
+    unsigned char txValue;
+    unsigned char rxValue;
 
     if (pin < 0 || pin > 7) {
-        _errorFlag = true;
-        _errorMessage = "Pin number is not between 0 and 7\n";
+        errorFlag = true;
+        errorMessage = "Pin number is not between 0 and 7\n";
         return -1;
     }
 
-    txBuf[0] = 1 << pin;
+    txValue = 1 << pin;
 
     /* Read the current state. */
-    if (_i2c.receive(IOSTATE, rxBuf, 1) > 0) {
+    if (i2c.receive(IOSTATE, &rxValue, 1) > 0) {
             
         if (value == 0) {
-            txBuf[0] = rxBuf[0] & ~txBuf[0];
+            txValue = rxValue & ~txValue;
         }
         else if (value == 1) {
-            txBuf[0] = rxBuf[0] | txBuf[0];
+            txValue = rxValue | txValue;
         }
         else {
-            _errorFlag = true;
-            _errorMessage = "value != 0/1\n";
+            errorFlag = true;
+            errorMessage = "value != 0/1\n";
             return -1;
         }
         
-        if (_i2c.send(IOSTATE, txBuf, 1) > 0) {
+        if (i2c.send(IOSTATE, &txValue, 1) > 0) {
             return 1;
         }
         else {
-            _errorFlag = true;
-            _errorMessage = "i2c.send (IOSTATE) Error\n";
+            errorFlag = true;
+            errorMessage = "i2c.send (IOSTATE) Error\n";
             return -1;
         }
     }
     
     else {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive (IOSTATE) Error\n";
+        errorFlag = true;
+        errorMessage = "i2c.receive (IOSTATE) Error\n";
         return -1;
     }
 
-    _errorFlag = true;
-    _errorMessage = "Unknown error\n";
+    errorFlag = true;
+    errorMessage = "Unknown error\n";
     return -1;
 }
 
@@ -304,39 +290,39 @@ int gnublin_module_sc16is750::digitalWrite(int pin, int value) {
  */
 int gnublin_module_sc16is750::digitalRead(int pin) {
 
-    _errorFlag = false;
-    unsigned char rxBuf[1];
+    errorFlag = false;
+    unsigned char rxValue;
 
     if (pin < 0 || pin > 7) {
-        _errorFlag = true;
-        _errorMessage = "Pin number is not between 0 and 7\n";
+        errorFlag = true;
+        errorMessage = "Pin number is not between 0 and 7\n";
         return -1;
     }
 
-    if (_i2c.receive(IOSTATE, rxBuf, 1) > 0) {
-        rxBuf[0] <<= (7 - pin);  /* MSB is now the pin we want to read from. */
-        rxBuf[0] &= 128;         /* Set all bits to 0 except the MSB. */
+    if (i2c.receive(IOSTATE, &rxValue, 1) > 0) {
+        rxValue <<= (7 - pin);  /* MSB is now the pin we want to read from. */
+        rxValue &= 128;         /* Set all bits to 0 except the MSB. */
 
-        if (rxBuf[0] == 0) {
+        if (rxValue == 0) {
             return 0;
         }
-        else if (rxBuf[0] == 128) {
+        else if (rxValue == 128) {
             return 1;
         }
         else {
-            _errorFlag = true;
-            _errorMessage = "bitshift failed\n";
+            errorFlag = true;
+            errorMessage = "bitshift failed\n";
             return -1;
         }
     }
     else {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive (IOSTATE) Error\n";
+        errorFlag = true;
+        errorMessage = "i2c.receive (IOSTATE) Error\n";
         return -1;
     }
 
-    _errorFlag = true;
-    _errorMessage = "Unknown error\n";
+    errorFlag = true;
+    errorMessage = "Unknown error\n";
     return -1;
 }
 
@@ -363,21 +349,21 @@ int gnublin_module_sc16is750::readState(int pin) {
  */
 int gnublin_module_sc16is750::writePort(unsigned char value) {
 
-    _errorFlag = false;
-    unsigned char txBuf[1];
-    txBuf[0] = value;
+    errorFlag = false;
+    unsigned char txValue;
+    txValue = value;
 
-    if (_i2c.send(IOSTATE, txBuf, 1) > 0) {
+    if (i2c.send(IOSTATE, &txValue, 1) > 0) {
         return 1;
     }
     else {
-        _errorFlag = true;
-        _errorMessage = "i2c.send (IOSTATE) Error\n";
+        errorFlag = true;
+        errorMessage = "i2c.send (IOSTATE) Error\n";
         return -1;
     }
 
-    _errorFlag = true;
-    _errorMessage = "Unknown error\n";
+    errorFlag = true;
+    errorMessage = "Unknown error\n";
     return -1;
 }
 
@@ -390,20 +376,20 @@ int gnublin_module_sc16is750::writePort(unsigned char value) {
  */
 unsigned char gnublin_module_sc16is750::readPort() {
 
-    _errorFlag = false;
-    unsigned char rxBuf[1];
+    errorFlag = false;
+    unsigned char rxValue;
 
-    if (_i2c.receive(IOSTATE, rxBuf, 1) > 0) {
-        return rxBuf[0];
+    if (i2c.receive(IOSTATE, &rxValue, 1) > 0) {
+        return rxValue;
     }
     else {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive (IOSTATE) Error";
+        errorFlag = true;
+        errorMessage = "i2c.receive (IOSTATE) Error";
         return -1;
     }
 
-    _errorFlag = true;
-    _errorMessage = "Unknown error\n";
+    errorFlag = true;
+    errorMessage = "Unknown error\n";
     return -1;
 }
 
@@ -418,42 +404,42 @@ unsigned char gnublin_module_sc16is750::readPort() {
  */
 int gnublin_module_sc16is750::pinIntEnable(int pin, int value) {
 
-    _errorFlag = false;
-    unsigned char txBuf[1];
-    unsigned char rxBuf[1];
+    errorFlag = false;
+    unsigned char txValue;
+    unsigned char rxValue;
 
     if (pin < 0 || pin > 7) {
-        _errorFlag = true;
-        _errorMessage = "Pin number is not between 0 and 7\n";
+        errorFlag = true;
+        errorMessage = "Pin number is not between 0 and 7\n";
         return -1;
     }
 
-    txBuf[0] = 1 << pin;
+    txValue = 1 << pin;
 
     /* Read the current state. */
-    if (_i2c.receive(IOINTEN, rxBuf, 1) > 0) {
+    if (i2c.receive(IOINTEN, &rxValue, 1) > 0) {
             
         if (value == 0) {
-            txBuf[0] = rxBuf[0] & ~txBuf[0];
+            txValue = rxValue & ~txValue;
         }
         else if (value == 1) {
-            txBuf[0] = rxBuf[0] | txBuf[0];
+            txValue = rxValue | txValue;
         }
         else {
-            _errorFlag = true;
-            _errorMessage = "value != 0/1\n";
+            errorFlag = true;
+            errorMessage = "value != 0/1\n";
             return -1;
         }
         
-        if (_i2c.send(IOINTEN, txBuf, 1) > 0) {
+        if (i2c.send(IOINTEN, &txValue, 1) > 0) {
 
             /* Store the IOSTATE value fro the pin. */
             int pinState = digitalRead(pin);
             if (pinState == 0) {
-                _ioLatchReg &= ~(pinState << pin);
+                ioLatchReg &= ~(pinState << pin);
             }
             else if (pinState == 1) {
-                _ioLatchReg |= (pinState << pin);
+                ioLatchReg |= (pinState << pin);
             }
             else {
                 return -1;
@@ -462,20 +448,20 @@ int gnublin_module_sc16is750::pinIntEnable(int pin, int value) {
             return 1;
         }
         else {
-            _errorFlag = true;
-            _errorMessage = "i2c.send (IOINTEN) Error\n";
+            errorFlag = true;
+            errorMessage = "i2c.send (IOINTEN) Error\n";
             return -1;
         }
     }
     
     else {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive (IOINTEN) Error\n";
+        errorFlag = true;
+        errorMessage = "i2c.receive (IOINTEN) Error\n";
         return -1;
     }
 
-    _errorFlag = true;
-    _errorMessage = "Unknown error\n";
+    errorFlag = true;
+    errorMessage = "Unknown error\n";
     return -1;
 }
 
@@ -489,40 +475,40 @@ int gnublin_module_sc16is750::pinIntEnable(int pin, int value) {
  */
 int gnublin_module_sc16is750::portIntEnable(int value) {
 
-    _errorFlag = false;
-    unsigned char txBuf[1];
+    errorFlag = false;
+    unsigned char txValue;
 
     if (value == 0) {
-        txBuf[0] = 0x00;
+        txValue = 0x00;
     }
     else if (value == 1) {
-        txBuf[0] = 0xff;
+        txValue = 0xff;
     }
     else {
-        _errorFlag = true;
-        _errorMessage = "value != 0/1\n";
+        errorFlag = true;
+        errorMessage = "value != 0/1\n";
         return -1;
     }
 
-    if (_i2c.send(IOINTEN, txBuf, 1) > 0) {
+    if (i2c.send(IOINTEN, &txValue, 1) > 0) {
 
         /* Store the IOSTATE value fro the pin. */
-        _ioLatchReg = readPort();
+        ioLatchReg = readPort();
         if (fail()) {
-            _ioLatchReg = 0x00;
+            ioLatchReg = 0x00;
             return -1;
         }
 
         return 1;
     }
     else {
-        _errorFlag = true;
-        _errorMessage = "i2c.send (IOINTEN) Error\n";
+        errorFlag = true;
+        errorMessage = "i2c.send (IOINTEN) Error\n";
         return -1;
     }
 
-    _errorFlag = true;
-    _errorMessage = "Unknown error\n";
+    errorFlag = true;
+    errorMessage = "Unknown error\n";
     return -1;
 }
 
@@ -537,31 +523,31 @@ int gnublin_module_sc16is750::portIntEnable(int value) {
  */
 unsigned char gnublin_module_sc16is750::readIntFlagPort(void) {
 
-    _errorFlag = false;
-    unsigned char ioDir[1];
-    unsigned char intEn[1];
-    unsigned char ioState[1];
+    errorFlag = false;
+    unsigned char ioDir;
+    unsigned char intEn;
+    unsigned char ioState;
 
-    ioState[0] = readPort();
-    if (_errorFlag) {  /* Error while reading port state. */
+    ioState = readPort();
+    if (errorFlag) {  /* Error while reading port state. */
         return -1;
     }
 
-    if (_i2c.receive(IODIR, ioDir, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive (IODIR) Error\n";
+    if (i2c.receive(IODIR, &ioDir, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.receive (IODIR) Error\n";
         return -1;
     }
     
-    if (_i2c.receive(IOINTEN, intEn, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive (IOITNEN) Error\n";
+    if (i2c.receive(IOINTEN, &intEn, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.receive (IOITNEN) Error\n";
         return -1;
     }
 
-    unsigned char state = ioState[0] & ~ioDir[0] & intEn[0];
-    unsigned char latch = _ioLatchReg & ~ioDir[0] & intEn[0];
-    _ioLatchReg = ioState[0];
+    unsigned char state = ioState & ~ioDir & intEn;
+    unsigned char latch = ioLatchReg & ~ioDir & intEn;
+    ioLatchReg = ioState;
 
     return state ^ latch;
 }
@@ -576,7 +562,7 @@ unsigned char gnublin_module_sc16is750::readIntFlagPort(void) {
  */
 int gnublin_module_sc16is750::pollInt(void) {
 
-    _errorFlag = false;
+    errorFlag = false;
 
     int count = 0;
     int interrupt = whichInt();
@@ -590,29 +576,29 @@ int gnublin_module_sc16is750::pollInt(void) {
         /* Error while identifying interrupt. */
         return interrupt;
     }
-    //printf("interrupt=0x%02x\n", interrupt);
+    printf("sc16is750::interrupt=0x%02x\n", interrupt);
 
     switch (interrupt) {
     case INT_RLS :  /* Receiver line status error. */
-        break;
+        //break;
     case INT_RTOUT :  /* Receiver timeout. */
-        break;
+        //break;
     case INT_RHR :  /* RHR. */
-        if (_isrDataReceived != NULL) {
+        if (isrDataReceived != NULL) {
             int available = rxAvailableData();
             char *buffer = (char *)malloc(available + 1);
             read(buffer, available);
             buffer[available] = '\0';
             
-            _isrDataReceived(buffer, available + 1);
+            isrDataReceived(buffer, available + 1);
         }
         count++;
         break;
     case INT_THR :  /* THR. */
-        if (_isrSpaceAvailable != NULL) {
+        if (isrSpaceAvailable != NULL) {
             int available = txAvailableSpace();
             
-            _isrSpaceAvailable(available);
+            isrSpaceAvailable(available);
         }
         count++;
         break;
@@ -626,14 +612,14 @@ int gnublin_module_sc16is750::pollInt(void) {
             if (intFlags & (1 << pin)) {
 
                 /* The value of the pin has changed. */
-                int value = _ioLatchReg << (7 - pin);
+                int value = ioLatchReg << (7 - pin);
                 value &= 128;
                 if (value == 128) {
                     value = 1;
                 }
                 
-                if (_isrIO != NULL) {
-                    _isrIO(pin, value);
+                if (isrIO != NULL) {
+                    isrIO(pin, value);
                 }
                 
                 count++;
@@ -642,15 +628,15 @@ int gnublin_module_sc16is750::pollInt(void) {
 
         /* Store the IO values in case they have changed before the interrupts
            have been treated. */
-        _ioLatchReg = readPort();
+        ioLatchReg = readPort();
         break;
     case INT_XOFF :  /* Received Xoff signal / special character. */
         break;
     case INT_CTSRTS :  /* CTS, RTS change of state from active (LOW) to inactive (HIGH). */
         break;
     default :
-        _errorFlag = true;
-        _errorMessage = "Unknown interrupt source\n";
+        errorFlag = true;
+        errorMessage = "Unknown interrupt source\n";
         return -1;
         break;
     }
@@ -670,7 +656,7 @@ int gnublin_module_sc16is750::pollInt(void) {
  */
 int gnublin_module_sc16is750::intIsrIO(void (*isr)(int, int)) {
 
-    _isrIO = isr;
+    isrIO = isr;
     return 1;
 }
 

@@ -6,9 +6,9 @@
 // Maintainer   : Christophe Burki
 // Created      : Thu May 29 15:14:01 2014
 // Version      : 1.0.0
-// Last-Updated : Sun Aug 31 16:08:28 2014 (7200 CEST)
+// Last-Updated : Sun Dec 14 20:10:43 2014 (3600 CET)
 //           By : Christophe Burki
-//     Update # : 859
+//     Update # : 995
 // URL          : 
 // Keywords     : 
 // Compatibility: 
@@ -53,46 +53,27 @@
 
 /**
  * @~english
- * @brief Set the default i2c address to 0x20 and default i2c file to /dev/i2c-1.
- */
-gnublin_module_sc16is7x0::gnublin_module_sc16is7x0(void) {
-
-    _errorFlag = false;
-    setAddress(0x20);
-    setDevicefile("/dev/i2c-1");
-
-    _isrDataReceived = NULL;
-    _isrSpaceAvailable = NULL;
-}
-
-
-/**
- * @~english
- * @brief Set the given i2c address and the default i2c file to /dev/i2c-1.
- */
-gnublin_module_sc16is7x0::gnublin_module_sc16is7x0(int address) {
-
-    _errorFlag = false;
-    setAddress(address);
-    setDevicefile("/dev/i2c-1");
-
-    _isrDataReceived = NULL;
-    _isrSpaceAvailable = NULL;
-}
-
-
-/**
- * @~english
  * @brief Set the given i2c address to 0x20 and the given i2c file to /dev/i2c-1.
+ *
+ * @param address The i2c address.
+ * @param filename The i2c device file.
  */
 gnublin_module_sc16is7x0::gnublin_module_sc16is7x0(int address, std::string filename) {
 
-    _errorFlag = false;
+    errorFlag = false;
     setAddress(address);
     setDevicefile(filename);
 
-    _isrDataReceived = NULL;
-    _isrSpaceAvailable = NULL;
+    isrDataReceived = NULL;
+    isrSpaceAvailable = NULL;
+}
+
+
+/**
+ * @~english
+ * brief
+ */
+gnublin_module_sc16is7x0::~gnublin_module_sc16is7x0(void) {
 }
 
 
@@ -106,9 +87,6 @@ int gnublin_module_sc16is7x0::init(void) {
 
     initUART(CONF_INT_DFLT);
 
-    /* Enable the transmit and receive FIFO. */
-    enableFifo(1);
-
     return 1;
 }
 
@@ -121,7 +99,7 @@ int gnublin_module_sc16is7x0::init(void) {
  */
 const char* gnublin_module_sc16is7x0::getErrorMessage(void) {
 
-    return _errorMessage.c_str();
+    return errorMessage.c_str();
 }
 
 
@@ -133,7 +111,7 @@ const char* gnublin_module_sc16is7x0::getErrorMessage(void) {
  */
 bool gnublin_module_sc16is7x0::fail(void) {
 
-    return _errorFlag;
+    return errorFlag;
 }
 
 
@@ -145,7 +123,7 @@ bool gnublin_module_sc16is7x0::fail(void) {
  */
 void gnublin_module_sc16is7x0::setAddress(int address) {
 
-    _i2c.setAddress(address);
+    i2c.setAddress(address);
 }
 
 
@@ -157,7 +135,7 @@ void gnublin_module_sc16is7x0::setAddress(int address) {
  */
 void gnublin_module_sc16is7x0::setDevicefile(std::string filename) {
 
-    _i2c.setDevicefile(filename);
+    i2c.setDevicefile(filename);
 }
 
 
@@ -167,8 +145,8 @@ void gnublin_module_sc16is7x0::setDevicefile(std::string filename) {
  */
 int gnublin_module_sc16is7x0::initUART(unsigned char value) {
 
-    _errorFlag = false;
-    unsigned char txBuf[1];
+    errorFlag = false;
+    unsigned char txValue;
 
     /* Set the MCR (Modem Control Register).
      * MCR[0] : DTR                -> 0
@@ -180,10 +158,10 @@ int gnublin_module_sc16is7x0::initUART(unsigned char value) {
      * MCR[6] : IrDA mode disable  -> 0
      * MCR[7] : Clock divisor = 1  -> 0
      */
-    txBuf[0] = 0x00;
-    if (_i2c.send(MCR, txBuf, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.send (MCR) Error\n";
+    txValue = 0x00;
+    if (i2c.send(MCR, &txValue, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.send (MCR) Error\n";
         return -1;
     }
 
@@ -197,82 +175,114 @@ int gnublin_module_sc16is7x0::initUART(unsigned char value) {
      * LCR[6] : No TX break condition  -> 0
      * LCR[7] : Divisor latch disabled -> 0
      */
-    txBuf[0] = UART_8N1;
-    if (_i2c.send(LCR, txBuf, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.send (LCR) Error\n";
+    txValue = UART_8N1;
+    if (i2c.send(LCR, &txValue, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.send (LCR) Error\n";
         return -1;
     }
 
-    /* Set the IER (Interrupt Enable Register).
-    * IER[0] : CTS interrupt enable                -> 0
-    * IER[1] : RTS interrupt enable                -> 0
-    * IER[2] : Xoff interrupt                      -> 0
-    * IER[3] : Sleep mode                          -> 0
-    * IER[4] : Modem Status interrupt              -> 0
-    * IER[5] : Receive line status interrupt       -> 0
-    * IER[6] : Transmit holding register interrupt -> 0
-    * IER[7] : Receive holding register interrupt  -> 0
-    */
-    /* Set EFR[4] because IER[7:4] could only be written when EFR[4] is set.
-     * EFR can only be accessed when LCR is 0xBF. */
-    unsigned char lcrBuf[1];
-    unsigned char efrBuf[1];
+    /* Set EFR[4].
+     * Can only be written when EFR[4] is set. EFR can only be accessed when LCR is 0xBF.
+     */
+    unsigned char lcrValue;
+    unsigned char efrValue;
+    unsigned char mcrValue;
 
-    if (_i2c.receive(LCR, lcrBuf, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive (MCR) Error\n";
+    if (i2c.receive(LCR, &lcrValue, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.receive (MCR) Error\n";
         return -1;
     }
 
-    txBuf[0] = 0xbf;
-    if (_i2c.send(LCR, txBuf, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.send (EFR) Error\n";
+    txValue = 0xbf;
+    if (i2c.send(LCR, &txValue, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.send (EFR) Error\n";
         return -1;
     }
     
-    if (_i2c.receive(EFR, efrBuf, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive (EFR) Error\n";
+    if (i2c.receive(EFR, &efrValue, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.receive (EFR) Error\n";
         return -1;
     }
 
-    txBuf[0] = efrBuf[0] | (1 << 4);
+    txValue = efrValue | (1 << 4);
 
-    if (_i2c.send(EFR, txBuf, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.send (EFR) Error\n";
+    if (i2c.send(EFR, &txValue, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.send (EFR) Error\n";
         return -1;
     }
 
-    /* Set the UART interrupts for the 4 MSB. */
-    txBuf[0] = (CONF_INT_DFLT | value) & 0xf0;
-    if (_i2c.send(IER, txBuf, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.send (IER) Error\n";
+    /* Set MCR[2]. */
+    if (i2c.receive(MCR, &mcrValue, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.receive (MCR) Error\n";
+        return -1;
+    }
+
+    txValue = mcrValue | (1 << 2);
+
+    if (i2c.send(MCR, &txValue, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.receive (MCR) Error\n";
+        return -1;
+    }
+    
+    /* Set the TCR (Transmission Control Register).
+     * TCR[0-3] : RX Fifo trigger level to halt transmission -> 0x0C (48)
+     * TCR[4-7] : RX Fifo trigger level to resume            -> 0x60 (24)
+     *
+     * Can only be written when EFR[4] is set.
+     */
+    txValue = 0x6c;
+    if (i2c.send(TCR, &txValue, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.send (TCR) Error\n";
+        return -1;
+    }
+
+    /* Set the IER (Interrupt Enable Register). Set the UART interrupts for the 4 MSB.
+     * IER[0] : Receive holding register interrupt  -> 0
+     * IER[1] : Transmit holding register interrupt -> 0
+     * IER[2] : Receive line status interrupt       -> 0
+     * IER[3] : Modem Status interrupt              -> 0
+     * IER[4] : Sleep mode                          -> 0
+     * IER[5] : Xoff interrupt                      -> 0
+     * IER[6] : RTS interrupt enable                -> 0
+     * IER[7] : CTS interrupt enable                -> 0
+     *
+     * Can only be written when EFR[4] is set.
+     */
+
+    txValue = (CONF_INT_DFLT | value) & 0xf0;
+    if (i2c.send(IER, &txValue, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.send (IER) Error\n";
         return -1;
     }
 
     /* Restore the EFR register. */
-    if (_i2c.send(EFR, efrBuf, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.send (EFR) Error\n";
+    if (i2c.send(EFR, &efrValue, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.send (EFR) Error\n";
         return -1;
     }
 
     /* Restore the LCR register. */
-    if (_i2c.send(LCR, lcrBuf, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.send (LCR) Error\n";
+    if (i2c.send(LCR, &lcrValue, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.send (LCR) Error\n";
         return -1;
     }
 
     /* Set the UART interrupts for the 4 LSB. */
-    txBuf[0] = (CONF_INT_DFLT | value) & 0x0f;
-    if (_i2c.send(IER, txBuf, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.send (IER) Error\n";
+    txValue = (CONF_INT_DFLT | value) & 0x0f;
+    if (i2c.send(IER, &txValue, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.send (IER) Error\n";
         return -1;
     }
 
@@ -286,30 +296,30 @@ int gnublin_module_sc16is7x0::initUART(unsigned char value) {
  */
 int gnublin_module_sc16is7x0::softReset(void) {
 
-    _errorFlag = false;
-    unsigned char rxBuf[1];
-    unsigned char txBuf[1];
+    errorFlag = false;
+    unsigned char rxValue;
+    unsigned char txValue;
 
-    if (_i2c.receive(IOCTRL, rxBuf, 1) > 0) {
+    if (i2c.receive(IOCTRL, &rxValue, 1) > 0) {
         
-        txBuf[0] = rxBuf[0] | (1 << 3);
-        if (_i2c.send(IOCTRL, txBuf, 1) > 0) {
+        txValue = rxValue | (1 << 3);
+        if (i2c.send(IOCTRL, &txValue, 1) > 0) {
             return 1;
         }
         else {
-            _errorFlag = true;
-            _errorMessage = "i2c.send (IOCTRL) Error\n";
+            errorFlag = true;
+            errorMessage = "i2c.send (IOCTRL) Error\n";
             return -1;
         }
     }
     else {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive (IOCTRL) Error\n";
+        errorFlag = true;
+        errorMessage = "i2c.receive (IOCTRL) Error\n";
         return -1;
     }
 
-    _errorFlag = true;
-    _errorMessage = "Unknown Error\n";
+    errorFlag = true;
+    errorMessage = "Unknown Error\n";
     return -1;
 }
 
@@ -323,11 +333,11 @@ int gnublin_module_sc16is7x0::softReset(void) {
  */
 int gnublin_module_sc16is7x0::setBaudRate(unsigned int baud) {
 
-    _errorFlag = false;
+    errorFlag = false;
 
     if ((baud < UART_300) || (baud > UART_230400)) {
-        _errorFlag = true;
-        sprintf(const_cast<char*>(_errorMessage.c_str()), "Baud rate is not between %d and %d\n", UART_300, UART_230400);
+        errorFlag = true;
+        sprintf(const_cast<char*>(errorMessage.c_str()), "Baud rate is not between %d and %d\n", UART_300, UART_230400);
         return -1;
     }
 
@@ -336,37 +346,37 @@ int gnublin_module_sc16is7x0::setBaudRate(unsigned int baud) {
     unsigned char divisorMSB = divisor >> 8;
 
     /* Set the LCR[7] to access the DLL and DLH register. */
-    unsigned char txBuf[1];
-    unsigned char lcrBuf[1];
-    if (_i2c.receive(LCR, lcrBuf, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive (LCR) Error\n";
+    unsigned char txValue;
+    unsigned char lcrValue;
+    if (i2c.receive(LCR, &lcrValue, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.receive (LCR) Error\n";
         return -1;
     }
 
-    txBuf[0] = lcrBuf[0] | (1 << 7);
-    if (_i2c.send(LCR, txBuf, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive (LCR) Error\n";
+    txValue = lcrValue | (1 << 7);
+    if (i2c.send(LCR, &txValue, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.receive (LCR) Error\n";
         return -1;
     }
 
     /* Set the baud rate. */
-    if (_i2c.send(DLL, &divisorLSB, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.send (DLL) Error\n";
+    if (i2c.send(DLL, &divisorLSB, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.send (DLL) Error\n";
         return -1;
     }
-    if (_i2c.send(DLH, &divisorMSB, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.send (DLH) Error\n";
+    if (i2c.send(DLH, &divisorMSB, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.send (DLH) Error\n";
         return -1;
     }
 
     /* Restore the LCR register. */
-    if (_i2c.send(LCR, lcrBuf, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive (LCR) Error\n";
+    if (i2c.send(LCR, &lcrValue, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.receive (LCR) Error\n";
         return -1;
     }
 
@@ -383,31 +393,31 @@ int gnublin_module_sc16is7x0::setBaudRate(unsigned int baud) {
  */
 int gnublin_module_sc16is7x0::setDataFormat(unsigned char format) {
 
-    _errorFlag = false;
-    unsigned char rxBuf[1];
-    unsigned char txBuf[1];
+    errorFlag = false;
+    unsigned char rxValue;
+    unsigned char txValue;
 
-    if (_i2c.receive(LCR, rxBuf, 1) > 0) {
+    if (i2c.receive(LCR, &rxValue, 1) > 0) {
 
-        txBuf[0] = rxBuf[0] | format;
-        if (_i2c.send(LCR, txBuf, 1) > 0) {
+        txValue = rxValue | format;
+        if (i2c.send(LCR, &txValue, 1) > 0) {
             return 1;
         }
         else {
-            _errorFlag = true;
-            _errorMessage = "i2c.send (LCR) Error\n";
+            errorFlag = true;
+            errorMessage = "i2c.send (LCR) Error\n";
             return -1;
         }
     }
 
     else {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive (LCR) Error\n";
+        errorFlag = true;
+        errorMessage = "i2c.receive (LCR) Error\n";
         return -1;
     }
 
-    _errorFlag = true;
-    _errorMessage = "Unknown Error\n";
+    errorFlag = true;
+    errorMessage = "Unknown Error\n";
     return -1;
 }
 
@@ -421,29 +431,29 @@ int gnublin_module_sc16is7x0::setDataFormat(unsigned char format) {
  */
 int gnublin_module_sc16is7x0::writeByte(const char byte) {
 
-    _errorFlag = false;
-    unsigned char lsrBuf[1];
+    errorFlag = false;
+    unsigned char lsrValue;
 
     /* Wait for the THR (Transmit Holding Register) to be empty. */
     while (true) {
-        if (_i2c.receive(LSR, lsrBuf, 1) < 0) {
-            _errorFlag = true;
-            _errorMessage = "i2c.receive (LSR) Error\n";
+        if (i2c.receive(LSR, &lsrValue, 1) < 0) {
+            errorFlag = true;
+            errorMessage = "i2c.receive (LSR) Error\n";
             return -1;
         }
 
-        if ((lsrBuf[0] & (1 << 5)) != 0) {
+        if ((lsrValue & (1 << 5)) != 0) {
             /* THR empty. */
             break;
         }
     }
 
-    if (_i2c.send(THR, (unsigned char *)(&byte), 1) > 0) {
+    if (i2c.send(THR, (unsigned char *)(&byte), 1) > 0) {
         return 1;
     }
 
-    _errorFlag = true;
-    _errorMessage = "Unknown Error\n";
+    errorFlag = true;
+    errorMessage = "Unknown Error\n";
     return -1;
 }
 
@@ -458,8 +468,8 @@ int gnublin_module_sc16is7x0::writeByte(const char byte) {
  */
 int gnublin_module_sc16is7x0::write(const char *buffer, unsigned int len) {
 
-    _errorFlag = false;
-    unsigned char lsrBuf[1];
+    errorFlag = false;
+    unsigned char lsrValue;
     int available = 0;
     int len2send = len;
     int writeLen = 0;
@@ -467,13 +477,13 @@ int gnublin_module_sc16is7x0::write(const char *buffer, unsigned int len) {
 
     /* Wait for the THR (Transmit Holding Register) to be empty. */
     while (true) {
-        if (_i2c.receive(LSR, lsrBuf, 1) < 0) {
-            _errorFlag = true;
-            _errorMessage = "i2c.receive (LSR) Error\n";
+        if (i2c.receive(LSR, &lsrValue, 1) < 0) {
+            errorFlag = true;
+            errorMessage = "i2c.receive (LSR) Error\n";
             return -1;
         }
 
-        if ((lsrBuf[0] & (1 << 5)) != 0) {
+        if ((lsrValue & (1 << 5)) != 0) {
             /* THR empty. */
             break;
         }
@@ -495,9 +505,9 @@ int gnublin_module_sc16is7x0::write(const char *buffer, unsigned int len) {
             writeLen = len2send;
         }
 
-        if (_i2c.send(THR, (unsigned char *)buffer, writeLen) < 0) {
-            _errorFlag = true;
-            _errorMessage = "i2c.send (THR) Error\n";
+        if (i2c.send(THR, (unsigned char *)buffer, writeLen) < 0) {
+            errorFlag = true;
+            errorMessage = "i2c.send (THR) Error\n";
             return -1;
         }
 
@@ -519,7 +529,7 @@ int gnublin_module_sc16is7x0::write(const char *buffer, unsigned int len) {
  */
 int gnublin_module_sc16is7x0::readByte(char *byte) {
 
-    _errorFlag = false;
+    errorFlag = false;
     int available = rxAvailableData();
 
     if (available < 0) {
@@ -532,9 +542,9 @@ int gnublin_module_sc16is7x0::readByte(char *byte) {
         return 1;
     }
 
-    if (_i2c.receive(RHR, (unsigned char *)byte, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive (RHR) Error\n";
+    if (i2c.receive(RHR, (unsigned char *)byte, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.receive (RHR) Error\n";
         return -1;
     }
 
@@ -552,18 +562,18 @@ int gnublin_module_sc16is7x0::readByte(char *byte) {
  */
 int gnublin_module_sc16is7x0::read(char *buffer, unsigned int len) {
 
-    _errorFlag = false;
+    errorFlag = false;
     unsigned int available = rxAvailableData();
     int readBytes = 0;
-    int len2read = len;
+    unsigned int len2read = len;
 
     if (len2read > available) {
         len2read = available;
     }
 
-    if (_i2c.receive(RHR, (unsigned char *)buffer, len2read) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive (RHR) Error\n";
+    if (i2c.receive(RHR, (unsigned char *)buffer, len2read) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.receive (RHR) Error\n";
         return -1;
     }
 
@@ -581,16 +591,16 @@ int gnublin_module_sc16is7x0::read(char *buffer, unsigned int len) {
  */
 int gnublin_module_sc16is7x0::rxAvailableData(void) {
 
-    _errorFlag = false;
-    unsigned char rxBuf[1];
+    errorFlag = false;
+    unsigned char rxValue;
 
-    if (_i2c.receive(RXLVL, rxBuf, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive (RXLVL) Error\n";
+    if (i2c.receive(RXLVL, &rxValue, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.receive (RXLVL) Error\n";
         return -1;
     }
 
-    return rxBuf[0];
+    return rxValue;
 }
 
 
@@ -602,16 +612,16 @@ int gnublin_module_sc16is7x0::rxAvailableData(void) {
  */
 int gnublin_module_sc16is7x0::txAvailableSpace(void) {
 
-    _errorFlag = false;
-    unsigned char rxBuf[1];
+    errorFlag = false;
+    unsigned char rxValue;
 
-    if (_i2c.receive(TXLVL, rxBuf, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive (TXLVL) Error\n";
+    if (i2c.receive(TXLVL, &rxValue, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.receive (TXLVL) Error\n";
         return -1;
     }
 
-    return rxBuf[0];
+    return rxValue;
 }
 
 
@@ -624,44 +634,44 @@ int gnublin_module_sc16is7x0::txAvailableSpace(void) {
  */
 int gnublin_module_sc16is7x0::enableFifo(int value) {
 
-    _errorFlag = false;
-    unsigned char rxBuf[1];
-    unsigned char txBuf[1];
+    errorFlag = false;
+    unsigned char rxValue;
+    unsigned char txValue;
 
-    txBuf[0] = 1 << 0;
+    txValue = 1 << 0;
 
-    if (_i2c.receive(FCR, rxBuf, 1) > 0) {
+    if (i2c.receive(FCR, &rxValue, 1) > 0) {
 
         if (value == 0) {
-            txBuf[0] = rxBuf[0] & ~txBuf[0];
+            txValue = rxValue & ~txValue;
         }
         else if (value == 1) {
-            txBuf[0] = rxBuf[0] | txBuf[0];
+            txValue = rxValue | txValue;
         }
         else {
-            _errorFlag = true;
-            _errorMessage = "value != 0/1\n";
+            errorFlag = true;
+            errorMessage = "value != 0/1\n";
             return -1;
         }
 
-        if (_i2c.send(FCR, txBuf, 1) > 0) {
+        if (i2c.send(FCR, &txValue, 1) > 0) {
             return 1;
         }
         else {
-            _errorFlag = true;
-            _errorMessage = "i2c.send (FCR) Error\n";
+            errorFlag = true;
+            errorMessage = "i2c.send (FCR) Error\n";
             return -1;
         }
     }
 
     else {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive (FCR) Error\n";
+        errorFlag = true;
+        errorMessage = "i2c.receive (FCR) Error\n";
         return -1;
     }
 
-    _errorFlag = true;
-    _errorMessage = "Unknown Error\n";
+    errorFlag = true;
+    errorMessage = "Unknown Error\n";
     return -1;
 }
 
@@ -676,21 +686,22 @@ int gnublin_module_sc16is7x0::enableFifo(int value) {
  */
 int gnublin_module_sc16is7x0::rxFifoSetTriggerLevel(unsigned int level) {
     
-    _errorFlag = false;
-    unsigned char rxBuf[1];
-    unsigned char txBuf[1];
-    unsigned char lcrBuf[1];
-    unsigned char efrBuf[1];
+    errorFlag = false;
+    unsigned char rxValue;
+    unsigned char txValue;
+    unsigned char tlrValue;
+    unsigned char lcrValue;
+    unsigned char efrValue;
 
     if ((level < 4) && (level > 60)) {
-        _errorFlag = true;
-        _errorMessage = "Level is not between 4 and 60\n";
+        errorFlag = true;
+        errorMessage = "Level is not between 4 and 60\n";
         return -1;
     }
 
     if (level % 4 != 0) {
-        _errorFlag = true;
-        _errorMessage = "Level is not a multiple of 4\n";
+        errorFlag = true;
+        errorMessage = "Level is not a multiple of 4\n";
         return -1;
     }
 
@@ -698,68 +709,74 @@ int gnublin_module_sc16is7x0::rxFifoSetTriggerLevel(unsigned int level) {
      * EFR can only by accessed when LCR is 0xBF. */
 
     /* Set MCR[2]. */
-    if (_i2c.receive(MCR, rxBuf, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive (MCR) Error\n";
+    if (i2c.receive(MCR, &rxValue, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.receive (MCR) Error\n";
         return -1;
     }
 
-    txBuf[0] = rxBuf[0] | (1 << 2);
+    txValue = rxValue | (1 << 2);
 
-    if (_i2c.send(MCR, txBuf, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive (MCR) Error\n";
+    if (i2c.send(MCR, &txValue, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.receive (MCR) Error\n";
         return -1;
     }
 
     /* Set EFR[4]. */
-    if (_i2c.receive(LCR, lcrBuf, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive (LCR) Error\n";
+    if (i2c.receive(LCR, &lcrValue, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.receive (LCR) Error\n";
         return -1;
     }
 
-    txBuf[0] = 0xbf;
-    if (_i2c.send(LCR, txBuf, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.send (EFR) Error\n";
+    txValue = 0xbf;
+    if (i2c.send(LCR, &txValue, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.send (EFR) Error\n";
         return -1;
     }
 
-    if (_i2c.receive(EFR, efrBuf, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive (EFR) Error\n";
+    if (i2c.receive(EFR, &efrValue, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.receive (EFR) Error\n";
         return -1;
     }
 
-    txBuf[0] = efrBuf[0] | (1 << 4);
+    txValue = efrValue | (1 << 4);
 
-    if (_i2c.send(EFR, txBuf, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.send (EFR) Error\n";
+    if (i2c.send(EFR, &txValue, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.send (EFR) Error\n";
         return -1;
     }
 
     /* Set the level. */
-    txBuf[0] = (level / 4) << 4;
+    if (i2c.receive(TLR, &tlrValue, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.receive (EFR) Error\n";
+        return -1;
+    }
 
-    if (_i2c.send(TLR, txBuf, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.send (TLR) Error\n";
+    txValue = (tlrValue & 0x0f) | ((level / 4) << 4);
+
+    if (i2c.send(TLR, &txValue, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.send (TLR) Error\n";
         return -1;
     }
 
     /* Restore the EFR register. */
-    if (_i2c.send(EFR, efrBuf, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.send (EFR) Error\n";
+    if (i2c.send(EFR, &efrValue, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.send (EFR) Error\n";
         return -1;
     }
 
     /* Restore the LCR register. */
-    if (_i2c.send(LCR, lcrBuf, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.send (LCR) Error\n";
+    if (i2c.send(LCR, &lcrValue, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.send (LCR) Error\n";
         return -1;
     }
 
@@ -777,90 +794,97 @@ int gnublin_module_sc16is7x0::rxFifoSetTriggerLevel(unsigned int level) {
  */
 int gnublin_module_sc16is7x0::txFifoSetTriggerLevel(unsigned int level) {
     
-    _errorFlag = false;
-    unsigned char rxBuf[1];
-    unsigned char txBuf[1];
-    unsigned char lcrBuf[1];
-    unsigned char efrBuf[1];
+    errorFlag = false;
+    unsigned char rxValue;
+    unsigned char txValue;
+    unsigned char tlrValue;
+    unsigned char lcrValue;
+    unsigned char efrValue;
 
     if ((level < 4) && (level > 60)) {
-        _errorFlag = true;
-        _errorMessage = "Level is not between 4 and 60\n";
+        errorFlag = true;
+        errorMessage = "Level is not between 4 and 60\n";
         return -1;
     }
 
     if (level % 4 != 0) {
-        _errorFlag = true;
-        _errorMessage = "Level is not a multiple of 4\n";
+        errorFlag = true;
+        errorMessage = "Level is not a multiple of 4\n";
         return -1;
     }
 
-    /* TCR can only be written to when MCR[2] and EFR[4] are set.
+    /* TLR can only be written to when MCR[2] and EFR[4] are set.
      * EFR can only by accessed when LCR is 0xBF. */
 
     /* Set MCR[2]. */
-    if (_i2c.receive(MCR, rxBuf, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive (MCR) Error\n";
+    if (i2c.receive(MCR, &rxValue, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.receive (MCR) Error\n";
         return -1;
     }
 
-    txBuf[0] = rxBuf[0] | (1 << 2);
+    txValue = rxValue | (1 << 2);
 
-    if (_i2c.send(MCR, txBuf, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive (MCR) Error\n";
+    if (i2c.send(MCR, &txValue, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.receive (MCR) Error\n";
         return -1;
     }
 
     /* Set EFR[4]. */
-    if (_i2c.receive(LCR, lcrBuf, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive (LCR) Error\n";
+    if (i2c.receive(LCR, &lcrValue, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.receive (LCR) Error\n";
         return -1;
     }
 
-    txBuf[0] = 0xbf;
-    if (_i2c.send(LCR, txBuf, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.send (EFR) Error\n";
+    txValue = 0xbf;
+    if (i2c.send(LCR, &txValue, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.send (EFR) Error\n";
         return -1;
     }
 
-    if (_i2c.receive(EFR, efrBuf, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive (EFR) Error\n";
+    if (i2c.receive(EFR, &efrValue, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.receive (EFR) Error\n";
         return -1;
     }
 
-    txBuf[0] = efrBuf[0] | (1 << 4);
+    txValue = efrValue | (1 << 4);
 
-    if (_i2c.send(EFR, txBuf, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.send (EFR) Error\n";
+    if (i2c.send(EFR, &txValue, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.send (EFR) Error\n";
         return -1;
     }
 
     /* Set the level. */
-    txBuf[0] = level / 4;
+    if (i2c.receive(TLR, &tlrValue, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.receive (EFR) Error\n";
+        return -1;
+    }
 
-    if (_i2c.send(TLR, txBuf, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.send (TLR) Error\n";
+    txValue = (tlrValue & 0xf0) | (level / 4);
+
+    if (i2c.send(TLR, &txValue, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.send (TLR) Error\n";
         return -1;
     }
     
     /* Restore the EFR register. */
-    if (_i2c.send(EFR, efrBuf, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.send (EFR) Error\n";
+    if (i2c.send(EFR, &efrValue, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.send (EFR) Error\n";
         return -1;
     }
 
     /* Restore the LCR register. */
-    if (_i2c.send(LCR, lcrBuf, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.send (LCR) Error\n";
+    if (i2c.send(LCR, &lcrValue, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.send (LCR) Error\n";
         return -1;
     }
 
@@ -876,13 +900,13 @@ int gnublin_module_sc16is7x0::txFifoSetTriggerLevel(unsigned int level) {
  */
 int gnublin_module_sc16is7x0::rxEmptyFifo(void){
 
-    _errorFlag = false;
+    errorFlag = false;
     int available = rxAvailableData();
-    unsigned char rxBuf[available];
+    unsigned char buffer[available];
 
-    if (_i2c.receive(RHR, rxBuf, available) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive (RHR) Error\n";
+    if (i2c.receive(RHR, buffer, available) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.receive (RHR) Error\n";
         return -1;
     }
 
@@ -899,32 +923,32 @@ int gnublin_module_sc16is7x0::rxEmptyFifo(void){
  */
 int gnublin_module_sc16is7x0::resetRxFifo(void) {
 
-    _errorFlag = false;
-    unsigned char rxBuf[1];
-    unsigned char txBuf[1];
+    errorFlag = false;
+    unsigned char rxValue;
+    unsigned char txValue;
 
-    if (_i2c.receive(FCR, rxBuf, 1) > 0) {
+    if (i2c.receive(FCR, &rxValue, 1) > 0) {
 
-        txBuf[0] = rxBuf[0] | (1 << 1);
+        txValue = rxValue | (1 << 1);
 
-        if (_i2c.send(FCR, txBuf, 1) > 0) {
+        if (i2c.send(FCR, &txValue, 1) > 0) {
             return 1;
         }
         else {
-            _errorFlag = true;
-            _errorMessage = "i2c.send (FCR) Error\n";
+            errorFlag = true;
+            errorMessage = "i2c.send (FCR) Error\n";
             return -1;
         }
     }
 
     else {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive (FCR) Error\n";
+        errorFlag = true;
+        errorMessage = "i2c.receive (FCR) Error\n";
         return -1;
     }
 
-    _errorFlag = true;
-    _errorMessage = "Unknown Error\n";
+    errorFlag = true;
+    errorMessage = "Unknown Error\n";
     return -1;
 }
 
@@ -938,32 +962,32 @@ int gnublin_module_sc16is7x0::resetRxFifo(void) {
  */
 int gnublin_module_sc16is7x0::resetTxFifo(void) {
 
-    _errorFlag = false;
-    unsigned char rxBuf[1];
-    unsigned char txBuf[1];
+    errorFlag = false;
+    unsigned char rxValue;
+    unsigned char txValue;
 
-    if (_i2c.receive(FCR, rxBuf, 1) > 0) {
+    if (i2c.receive(FCR, &rxValue, 1) > 0) {
 
-        txBuf[0] = rxBuf[0] | (1 << 2);
+        txValue = rxValue | (1 << 2);
 
-        if (_i2c.send(FCR, txBuf, 1) > 0) {
+        if (i2c.send(FCR, &txValue, 1) > 0) {
             return 1;
         }
         else {
-            _errorFlag = true;
-            _errorMessage = "i2c.send (FCR) Error\n";
+            errorFlag = true;
+            errorMessage = "i2c.send (FCR) Error\n";
             return -1;
         }
     }
 
     else {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive (FCR) Error\n";
+        errorFlag = true;
+        errorMessage = "i2c.receive (FCR) Error\n";
         return -1;
     }
 
-    _errorFlag = true;
-    _errorMessage = "Unknown Error\n";
+    errorFlag = true;
+    errorMessage = "Unknown Error\n";
     return -1;
 }
 
@@ -976,34 +1000,34 @@ int gnublin_module_sc16is7x0::resetTxFifo(void) {
  */
 int gnublin_module_sc16is7x0::isIntPending(void) {
 
-    _errorFlag = false;
-    unsigned char rxBuf[1];
+    errorFlag = false;
+    unsigned char rxValue;
 
-    if (_i2c.receive(IIR, rxBuf, 1) < 0) {
+    if (i2c.receive(IIR, &rxValue, 1) > 0) {
 
-        if (rxBuf[0] & 0x01) {
+        if (rxValue & 0x01) {
             /* No interrupt pending. */
             return 0;
         }
-        else if (rxBuf[0] & 0x00) {
+        else if (rxValue & 0x00) {
             /* Interrupt pending. */
             return 1;
         }
         else {
-            _errorFlag = true;
-            _errorMessage = "Unknown error\n";
+            errorFlag = true;
+            errorMessage = "Unknown error\n";
             return -1;
         }
     }
     
     else {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive (IIR) Error\n";
+        errorFlag = true;
+        errorMessage = "i2c.receive (IIR) Error\n";
         return -1;
     }
 
-    _errorFlag = true;
-    _errorMessage = "Unknown error\n";
+    errorFlag = true;
+    errorMessage = "Unknown error\n";
     return -1;
 }
 
@@ -1016,22 +1040,22 @@ int gnublin_module_sc16is7x0::isIntPending(void) {
  */
 int gnublin_module_sc16is7x0::whichInt(void) {
 
-    _errorFlag = false;
-    unsigned char rxBuf[1];
+    errorFlag = false;
+    unsigned char rxValue;
 
-    if (_i2c.receive(IIR, rxBuf, 1) < 0) {
-        _errorFlag = true;
-        _errorMessage = "i2c.receive (IIR) Error\n";
+    if (i2c.receive(IIR, &rxValue, 1) < 0) {
+        errorFlag = true;
+        errorMessage = "i2c.receive (IIR) Error\n";
         return -1;
     }
 
-    if ((rxBuf[0] & 0x01) == 1) {
+    if ((rxValue & 0x01) == 1) {
         /* No pending interrupt. */
         return 0;
     }
 
-    //printf("rxBuf=0x%02x, 0x%02x\n", rxBuf[0], rxBuf[0] & 0x3e);
-    return (rxBuf[0] & 0x3e);
+    //printf("&rxValue=0x%02x, 0x%02x\n", rxValue, rxValue & 0x3e);
+    return (rxValue & 0x3e);
 }
 
 
@@ -1044,11 +1068,10 @@ int gnublin_module_sc16is7x0::whichInt(void) {
  */
 int gnublin_module_sc16is7x0::pollInt(void) {
 
-    _errorFlag = false;
+    errorFlag = false;
 
     int count = 0;
     int interrupt = whichInt();
-    unsigned char intFlags;
 
     if (interrupt == 0) {
         /* No pending interrupt. */
@@ -1058,29 +1081,28 @@ int gnublin_module_sc16is7x0::pollInt(void) {
         /* Error while identifying interrupt. */
         return interrupt;
     }
-    //printf("interrupt=0x%02x\n", interrupt);
 
     switch (interrupt) {
     case INT_RLS :  /* Receiver line status error. */
-        break;
+        //break;
     case INT_RTOUT :  /* Receiver timeout. */
-        break;
+        //break;
     case INT_RHR :  /* RHR. */
-        if (_isrDataReceived != NULL) {
+        if (isrDataReceived != NULL) {
             int available = rxAvailableData();
             char *buffer = (char *)malloc(available + 1);
             read(buffer, available);
             buffer[available] = '\0';
             
-            _isrDataReceived(buffer, available + 1);
+            isrDataReceived(buffer, available + 1);
         }
         count++;
         break;
     case INT_THR :  /* THR. */
-        if (_isrSpaceAvailable != NULL) {
+        if (isrSpaceAvailable != NULL) {
             int available = txAvailableSpace();
             
-            _isrSpaceAvailable(available);
+            isrSpaceAvailable(available);
         }
         count++;
         break;
@@ -1091,8 +1113,8 @@ int gnublin_module_sc16is7x0::pollInt(void) {
     case INT_CTSRTS :  /* CTS, RTS change of state from active (LOW) to inactive (HIGH). */
         break;
     default :
-        _errorFlag = true;
-        _errorMessage = "Unknown interrupt source\n";
+        errorFlag = true;
+        errorMessage = "Unknown interrupt source\n";
         return -1;
         break;
     }
@@ -1113,7 +1135,7 @@ int gnublin_module_sc16is7x0::pollInt(void) {
  */
 int gnublin_module_sc16is7x0::intIsrDataReceived(void (*isr)(char *, int)) {
 
-    _isrDataReceived = isr;
+    isrDataReceived = isr;
     return 1;
 }
 
@@ -1129,7 +1151,7 @@ int gnublin_module_sc16is7x0::intIsrDataReceived(void (*isr)(char *, int)) {
  */
 int gnublin_module_sc16is7x0::intIsrSpaceAvailable(void (*isr)(int)) {
 
-    _isrSpaceAvailable = isr;
+    isrSpaceAvailable = isr;
     return 1;
 }
 

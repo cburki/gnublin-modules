@@ -6,9 +6,9 @@
  * Maintainer   : Christophe Burki
  * Created      : Thu May 29 15:08:43 2014
  * Version      : 
- * Last-Updated : Sun Aug 31 16:03:28 2014 (7200 CEST)
+ * Last-Updated : Sat Dec 13 16:38:41 2014 (3600 CET)
  *           By : Christophe Burki
- *     Update # : 119
+ *     Update # : 132
  * URL          : 
  * Keywords     : 
  * Compatibility: 
@@ -180,17 +180,16 @@
 class gnublin_module_sc16is7x0 {
 
  protected :
-    gnublin_i2c _i2c;
-    bool _errorFlag;
-    std::string _errorMessage;
+    gnublin_i2c i2c;
+    bool errorFlag;
+    std::string errorMessage;
 
-    void (*_isrDataReceived)(char *, int);
-    void (*_isrSpaceAvailable)(int);
+    void (*isrDataReceived)(char *, int);
+    void (*isrSpaceAvailable)(int);
 
  public :
-    gnublin_module_sc16is7x0(void);
-    gnublin_module_sc16is7x0(int address);
-    gnublin_module_sc16is7x0(int address, std::string filename);
+    gnublin_module_sc16is7x0(int address = 0x20, std::string filename = "/dev/i2c-1");
+    virtual ~gnublin_module_sc16is7x0(void);
     int init(void);
     const char* getErrorMessage(void);
     bool fail(void);
@@ -218,7 +217,7 @@ class gnublin_module_sc16is7x0 {
     /* Interrupts */
     int isIntPending(void);
     int whichInt(void);
-    int pollInt(void);
+    virtual int pollInt(void);
     int intIsrDataReceived(void (*isr)(char *, int));
     int intIsrSpaceAvailable(void (*isr)(int));
 };

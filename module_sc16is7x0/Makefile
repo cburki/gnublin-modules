@@ -6,9 +6,9 @@
 ## Maintainer   : Christophe Burki
 ## Created      : Sun Jun 22 11:51:54 2014
 ## Version      : 1.0.0
-## Last-Updated : Sun Aug 31 16:21:19 2014 (7200 CEST)
+## Last-Updated : Wed Sep  3 17:13:34 2014 (7200 CEST)
 ##           By : Christophe Burki
-##     Update # : 15
+##     Update # : 24
 ## URL          : 
 ## Keywords     : 
 ## Compatibility: 
@@ -45,13 +45,16 @@
 ## 
 ### Code         :
 
-TARGET := test_sc16is750
 MODULES := module_sc16is7x0 module_sc16is740 module_sc16is750
 MODOBJECTS := $(addsuffix .o, $(MODULES))
 SOURCES := $(addsuffix .cpp, $(MODULES))
 LIBRARY := gnublin_module_sc16is7x0.a
 
-SOURCES += test_sc16is750.c
+ifndef TARGET
+TARGET := test_sc16is750_uart
+endif
+
+SOURCES += $(TARGET).c
 
 include ../Config.mk
 include $(GNUBLINMKDIR)/gnublin.mk
@@ -60,7 +63,7 @@ include $(GNUBLINMKDIR)/gnublin.mk
 lib : $(MODOBJECTS)
 	$(AR) rcs $(LIBRARY) $(MODOBJECTS)
 
-python-module:
+python-module :: $(MODOBJECTS)
 	@echo "%module gnublin_module_sc16is7x0" > gnublin_module_sc16is7x0.i
 	@echo "%include \"std_string.i\"" >> gnublin_module_sc16is7x0.i
 	@echo "%{" >> gnublin_module_sc16is7x0.i

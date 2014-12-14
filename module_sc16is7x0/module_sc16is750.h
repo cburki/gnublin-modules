@@ -6,9 +6,9 @@
  * Maintainer   : Christophe Burki
  * Created      : Thu May 29 15:08:43 2014
  * Version      : 
- * Last-Updated : Sun Aug 31 16:18:15 2014 (7200 CEST)
+ * Last-Updated : Sun Oct 12 15:40:17 2014 (7200 CEST)
  *           By : Christophe Burki
- *     Update # : 124
+ *     Update # : 126
  * URL          : 
  * Keywords     : 
  * Compatibility: 
@@ -60,13 +60,11 @@
 class gnublin_module_sc16is750 : public gnublin_module_sc16is7x0 {
 
  private :
-    unsigned char _ioLatchReg;
-    void (*_isrIO)(int, int);
+    unsigned char ioLatchReg;
+    void (*isrIO)(int, int);
 
  public :
-    gnublin_module_sc16is750(void);
-    gnublin_module_sc16is750(int address);
-    gnublin_module_sc16is750(int address, std::string filename);
+    gnublin_module_sc16is750(int address = 0x20, std::string filename = "/dev/i2c-1");
     int init(void);
 
     /* GPIOs */

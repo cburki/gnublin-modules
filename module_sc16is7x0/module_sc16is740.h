@@ -6,9 +6,9 @@
  * Maintainer   : Christophe Burki
  * Created      : Thu May 29 15:08:43 2014
  * Version      : 
- * Last-Updated : Sun Aug 31 16:12:16 2014 (7200 CEST)
+ * Last-Updated : Thu Sep 11 10:18:40 2014 (7200 CEST)
  *           By : Christophe Burki
- *     Update # : 119
+ *     Update # : 121
  * URL          : 
  * Keywords     : 
  * Compatibility: 
@@ -60,9 +60,7 @@
 class gnublin_module_sc16is740 : public gnublin_module_sc16is7x0 {
 
  public :
-    gnublin_module_sc16is740(void);
-    gnublin_module_sc16is740(int address);
-    gnublin_module_sc16is740(int address, std::string filename);
+    gnublin_module_sc16is740(int address = 0x20, std::string filename = "/dev/i2c-1");
 };
 
 /* -------------------------------------------------------------------------- */
