@@ -6,9 +6,9 @@
  * Maintainer   : Christophe Burki
  * Created      : Thu May 29 15:08:43 2014
  * Version      : 
- * Last-Updated : Sat Dec 13 16:38:41 2014 (3600 CET)
+ * Last-Updated : Sat Jan  3 09:23:20 2015 (3600 CET)
  *           By : Christophe Burki
- *     Update # : 132
+ *     Update # : 161
  * URL          : 
  * Keywords     : 
  * Compatibility: 
@@ -113,8 +113,27 @@
 #define UART_7E2 0x1E
 #define UART_8E2 0x1F
 
+/* Configuration values for the flow control.
+   Software flow control not yet supported. */
+#define CONF_FLOW_NONE     0x00
+#define CONF_FLOW_DISABLED CONF_FLOW_NONE
+#define CONF_FLOW_CTS      0x80
+#define CONF_FLOW_RTS      0x40
+
+/* Interrupts configuration for the UART. */
+#define CONF_INT_NONE     0x00  /* Disable all UART interrupts */
+#define CONF_INT_DISABLED CONF_INT_NONE
+#define CONF_INT_CTSEN    0x80  /* Enable the CTS interrupt */
+#define CONF_INT_RTSEN    0x40  /* Enable the RTS interrupt */
+#define CONF_INT_XOFFEN   0x20  /* Enable the XOFF interrupt */
+#define CONF_INT_SLEEP    0x10  /* Enable sleep mode interrupt. */
+#define CONF_INT_MSEN     0x08  /* Enable the modem status interrupt */
+#define CONF_INT_RLSEN    0x04  /* Enable the receiver line status interrupt */
+#define CONF_INT_THREN    0x02  /* Enable the THR (Transmit Holding Register) interrupt */
+#define CONF_INT_RHREN    0x01  /* Enable the RHR (Receive Holding Register) interrupt */
+
 /* Interrupts identification. */
-#define INT_RLS    0x06  /* Receiver line status error */
+#define INT_RLSE   0x06  /* Receiver line status error */
 #define INT_RTOUT  0x0c  /* Receiver timeout */
 #define INT_RHR    0x04  /* Receiver Trigger */
 #define INT_THR    0x02  /* Transmit Trigger */
@@ -124,18 +143,8 @@
 #define INT_CTSRTS 0x20  /* CTS, RTS change of state from active (LOW) to inactive (HIGH) */
 
 /* Configuration values for the I/Os. */
-#define CONF_IO_DFLT    0x00
+#define CONF_IO_DEFAULT 0x00
 #define CONF_IO_LATCH   0x01
-
-/* Interrupts configuration for the UART. */
-#define CONF_INT_DFLT   0x00  /* Default, disbale all UART interrupts */
-#define CONF_INT_CTSEN  0x80  /* Enable the CTS interrupt */
-#define CONF_INT_RTSEN  0x40  /* Enable the RTS interrupt */
-#define CONF_INT_XOFFEN 0x20  /* Enable the XOFF interrupt */
-#define CONF_INT_MSEN   0x08  /* Enable the modem status interrupt */
-#define CONF_INT_RLSEN  0x04  /* Enable the receiver line status interrupt */
-#define CONF_INT_THREN  0x02  /* Enable the THR (Transmit Holding Register) interrupt */
-#define CONF_INT_RHREN  0x01  /* Enable the RHR (Receive Holding Register) interrupt */
 
 /* Registers definition. */
 #define RHR     (0x00 << 3)  /* Receive Holding Register (read) */
@@ -165,10 +174,25 @@
 #define XOFF1   (0x06 << 3)  /* Xoff1 Word (read/write) - Accessible only when LCR is set to 10111111 (0xBF) */
 #define XOFF2   (0x07 << 3)  /* Xoff2 Word (read/write) - Accessible only when LCR is set to 10111111 (0xBF) */
 
-/* Registers access are shifter 3 bit left because they are encoded in the bits 3:0 of
+/* Registers access are shifted 3 bit left because they are encoded in the bits 3:0 of
    the subaddress. (See section 10.4 of the SC16IS750 datasheet) */
 
 #define XTAL_FREQ 14745600
+
+/* -------------------------------------------------------------------------- */
+
+/**
+ * @class sc16is7x0_config
+ * @~english
+ * @brief Class to save configuration parameters. Save write only registers
+ * values too.
+ */
+class sc16is7x0_config {
+    
+ public :
+    int fifoEnable;
+    unsigned char fcrRegister;
+};
 
 /* -------------------------------------------------------------------------- */
 
@@ -184,6 +208,9 @@ class gnublin_module_sc16is7x0 {
     bool errorFlag;
     std::string errorMessage;
 
+    int fifoEnable;
+    sc16is7x0_config config;
+    
     void (*isrDataReceived)(char *, int);
     void (*isrSpaceAvailable)(int);
 
@@ -198,21 +225,27 @@ class gnublin_module_sc16is7x0 {
     int softReset(void);
 
     /* UART */
-    int initUART(unsigned char value);
+    int initUART(void);
     int setBaudRate(unsigned int baud);
     int setDataFormat(unsigned char format);
-    int writeByte(const char byte);
-    int write(const char *buffer, unsigned int len);
-    int readByte(char *byte);
-    int read(char *buffer, unsigned int len);
-    int rxAvailableData(void);
-    int txAvailableSpace(void);
+    int setModemControl(void);
+    int setFlowControl(unsigned char flow);
+    int setFlowTriggers(unsigned int resume, unsigned int halt);
+    int setInterrupt(unsigned char interrupt);
     int enableFifo(int value);
     int rxFifoSetTriggerLevel(unsigned int len);
     int txFifoSetTriggerLevel(unsigned int len);
     int rxEmptyFifo(void);
     int resetRxFifo(void);
     int resetTxFifo(void);
+    int rxAvailableData(void);
+    int txAvailableSpace(void);
+    unsigned char readLineStatus(void);
+    int enableLoopback(void);
+    int writeByte(const char byte);
+    int write(const char *buffer, unsigned int len);
+    int readByte(char *byte);
+    int read(char *buffer, unsigned int len);
 
     /* Interrupts */
     int isIntPending(void);

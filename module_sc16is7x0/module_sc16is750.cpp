@@ -6,9 +6,9 @@
 // Maintainer   : Christophe Burki
 // Created      : Thu May 29 15:14:01 2014
 // Version      : 1.0.0
-// Last-Updated : Thu Dec 11 21:42:56 2014 (3600 CET)
+// Last-Updated : Sat Jan  3 09:36:57 2015 (3600 CET)
 //           By : Christophe Burki
-//     Update # : 886
+//     Update # : 918
 // URL          : 
 // Keywords     : 
 // Compatibility: 
@@ -72,13 +72,11 @@ gnublin_module_sc16is750::gnublin_module_sc16is750(int address, std::string file
  */
 int gnublin_module_sc16is750::init(void) {
 
-    gnublin_module_sc16is7x0::softReset();
-
-    gnublin_module_sc16is7x0::initUART(CONF_INT_DFLT);
-    initIO(CONF_IO_DFLT);
+    gnublin_module_sc16is7x0::init();
+    initIO(CONF_IO_DEFAULT);
 
     /* Enable the transmit and receive FIFO. */
-    gnublin_module_sc16is7x0::enableFifo(1);
+    //gnublin_module_sc16is7x0::enableFifo(1);
 
     return 1;
 }
@@ -105,7 +103,7 @@ int gnublin_module_sc16is750::initIO(unsigned char value) {
      * IOCTRL[6] : Reserved
      * IOCTRL[7] : Reserved
      */
-    txValue = CONF_IO_DFLT | value;
+    txValue = CONF_IO_DEFAULT | value;
     if (i2c.send(IOCTRL, &txValue, 1) < 0) {
         errorFlag = true;
         errorMessage = "i2c.send (IOCTRL) Error\n";
@@ -576,28 +574,29 @@ int gnublin_module_sc16is750::pollInt(void) {
         /* Error while identifying interrupt. */
         return interrupt;
     }
-    printf("sc16is750::interrupt=0x%02x\n", interrupt);
+    //printf("sc16is750::interrupt=0x%02x\n", interrupt);
 
     switch (interrupt) {
-    case INT_RLS :  /* Receiver line status error. */
+    case INT_RLSE :  /* Receiver line status error. */
         //break;
     case INT_RTOUT :  /* Receiver timeout. */
         //break;
     case INT_RHR :  /* RHR. */
         if (isrDataReceived != NULL) {
             int available = rxAvailableData();
-            char *buffer = (char *)malloc(available + 1);
-            read(buffer, available);
-            buffer[available] = '\0';
-            
-            isrDataReceived(buffer, available + 1);
+            if (available > 0) {
+                char *buffer = (char *)malloc(available + 1);
+                read(buffer, available);
+                buffer[available] = '\0';
+                
+                isrDataReceived(buffer, available + 1);
+            }
         }
         count++;
         break;
     case INT_THR :  /* THR. */
         if (isrSpaceAvailable != NULL) {
             int available = txAvailableSpace();
-            
             isrSpaceAvailable(available);
         }
         count++;

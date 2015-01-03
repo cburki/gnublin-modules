@@ -6,9 +6,9 @@
  * Maintainer   : Christophe Burki
  * Created      : Thu May 29 19:18:54 2014
  * Version      : 1.0.0
- * Last-Updated : Sun Dec 14 19:53:29 2014 (3600 CET)
+ * Last-Updated : Sat Jan  3 09:21:24 2015 (3600 CET)
  *           By : Christophe Burki
- *     Update # : 44
+ *     Update # : 144
  * URL          : 
  * Keywords     : 
  * Compatibility: 
@@ -75,101 +75,11 @@ int main(void) {
 
     gnublin_gpio gpio;
     gnublin_module_sc16is750 sc16is750(0x49);
- 
+
     sc16is750.init();
-    sc16is750.initUART(CONF_INT_RHREN | CONF_INT_THREN);
     sc16is750.enableFifo(1);
 
-    /*
-     * Testing UART interrupts
-     *
-     * R-PI    SC16IS750
-     * #4      IRQ
-     * #18     GPIO0
-     *
-     * Press 'q' to exit.
-     */
-
-    gpio.pinMode(18, OUTPUT);
-    gpio.pinMode(22, INPUT);
-
-    sc16is750.intIsrDataReceived(&onDataReceived);
-    sc16is750.intIsrSpaceAvailable(&onSpaceAvailable);
-
-    sc16is750.setBaudRate(UART_9600);
-    sc16is750.rxFifoSetTriggerLevel(8);
-    sc16is750.txFifoSetTriggerLevel(8);
     sc16is750.rxEmptyFifo();
-
-    int nfds = 2;
-    struct pollfd fdset[nfds];
-    int gpio22Fd;
-    int gpio22EdgeFd;
-    int timeout = POLL_TIMEOUT;
-    int nfd;
-
-    gpio22EdgeFd = open("/sys/class/gpio/gpio22/edge", O_WRONLY);
-    if (gpio22EdgeFd < 0) {
-        printf("gpio22EdgeFd Error");
-        return -1;
-    }
-    write(gpio22EdgeFd, "falling", 7);
-    close(gpio22EdgeFd);
-
-    gpio22Fd = open("/sys/class/gpio/gpio22/value", O_RDONLY | O_NONBLOCK);
-    if (gpio22Fd < 0) {
-        printf("gpio22Fd/open Error");
-        return -1;
-    }
-
-    /* Initialize the pollfd structure. */
-    memset((void *)fdset, 0, sizeof(fdset));
-    fdset[0].fd = STDIN_FILENO;
-    fdset[0].events = POLLIN;
-    fdset[1].fd = gpio22Fd;
-    fdset[1].events = POLLPRI;
-
-    /* */
-    read(gpio22Fd, NULL, 1);
-
-    while (1) {
-        nfd = poll(fdset, nfds, timeout);
-        if (nfd < 0) {
-            printf("poll() failed\n");
-            return -1;
-        }
-
-        if (nfd == 0) {
-            /* Poll timeout. */
-        }
-
-        if (fdset[0].revents & POLLIN) {
-            char *c = (char *)malloc(sizeof(char));
-            read(fdset[0].fd, c, 1);
-
-            if (*c == 'q') {
-                break;
-            }
-        }
-
-        if (fdset[1].revents && POLLPRI) {
-            read(fdset[1].fd, NULL, 1);
-            int intCount = sc16is750.pollInt();
-            printf("intCount=%d\n", intCount);
-        }
-    }
-
-    close(gpio22Fd);
-
-
-    /* Testing the UART.
-     * Send "Hello " character after character,
-     * Send "Word\n" as a string,
-     * Send "0123...89\n" a 81 characters string (greater than the FIFO size),
-     * Wait for string "exit" and exit.
-     */
-    sc16is750.rxEmptyFifo();
-
     int space = sc16is750.txAvailableSpace();
     int bytes = 0;
     printf("space=%d\n", space);
@@ -211,6 +121,97 @@ int main(void) {
             }
         }
     }
+
+    /*
+     * Testing UART interrupts
+     *
+     * R-PI    SC16IS750
+     * #22     IRQ
+     * #18     GPIO0
+     *
+     * Press 'q' to exit.
+     */
+
+    gpio.pinMode(18, OUTPUT);
+    gpio.pinMode(22, INPUT);
+
+    int nfds = 2;
+    struct pollfd fdset[nfds];
+    int gpio22Fd;
+    int gpio22EdgeFd;
+    int timeout = POLL_TIMEOUT;
+    int nfd;
+
+    gpio22EdgeFd = open("/sys/class/gpio/gpio22/edge", O_WRONLY);
+    if (gpio22EdgeFd < 0) {
+        printf("gpio22EdgeFd Error");
+        return -1;
+    }
+    write(gpio22EdgeFd, "falling", 7);
+    close(gpio22EdgeFd);
+
+    gpio22Fd = open("/sys/class/gpio/gpio22/value", O_RDONLY | O_NONBLOCK);
+    if (gpio22Fd < 0) {
+        printf("gpio22Fd/open Error");
+        return -1;
+    }
+
+    /* */
+    read(gpio22Fd, NULL, 1);
+
+    /* Initialize the pollfd structure. */
+    memset((void *)fdset, 0, sizeof(fdset));
+    fdset[0].fd = STDIN_FILENO;
+    fdset[0].events = POLLIN;
+    fdset[1].fd = gpio22Fd;
+    fdset[1].events = POLLPRI;
+
+
+    sc16is750.intIsrDataReceived(&onDataReceived);
+    sc16is750.intIsrSpaceAvailable(&onSpaceAvailable);
+    
+    sc16is750.init();
+    if (sc16is750.fail()) {
+        printf("ERROR : %s\n", sc16is750.getErrorMessage());
+    }
+
+    sc16is750.enableFifo(1);
+    sc16is750.rxFifoSetTriggerLevel(8);
+    sc16is750.txFifoSetTriggerLevel(8);
+    sc16is750.setInterrupt(CONF_INT_RHREN | CONF_INT_THREN);
+    sc16is750.rxEmptyFifo();
+
+    unsigned char status = sc16is750.readLineStatus();
+    printf("status=0x%02x\n", status);
+
+    while (1) {
+        nfd = poll(fdset, nfds, timeout);
+        if (nfd < 0) {
+            printf("poll() failed\n");
+            return -1;
+        }
+
+        if (nfd == 0) {
+            /* Poll timeout. */
+        }
+
+        if (fdset[0].revents & POLLIN) {
+            char *c = (char *)malloc(sizeof(char));
+            read(fdset[0].fd, c, 1);
+
+            if (*c == 'q') {
+                break;
+            }
+        }
+
+        if (fdset[1].revents && POLLPRI) {
+            read(fdset[1].fd, NULL, 1);
+            int intCount = sc16is750.pollInt();
+            printf("intCount=%d\n", intCount);
+        }
+    }
+
+    close(gpio22Fd);
 }
 
 /* -------------------------------------------------------------------------- */
